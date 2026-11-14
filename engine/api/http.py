@@ -118,6 +118,14 @@ def create_http_router(service: EngineService) -> APIRouter:
     async def list_reports_endpoint() -> list[dict[str, Any]]:
         return service.record.list_reports()
 
+    @router.post("/reports/{run_id}")
+    async def build_report_endpoint(run_id: str) -> dict[str, Any]:
+        decoded = unquote(run_id)
+        try:
+            return service.build_report(decoded)
+        except (KeyError, ValueError) as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+
     @router.get("/reports/{report_id}", response_class=HTMLResponse)
     async def get_report_endpoint(report_id: str) -> HTMLResponse:
         path = service.record.get_report_path(report_id)
@@ -147,10 +155,12 @@ def create_http_router(service: EngineService) -> APIRouter:
         stdio_cmd = (
             f'claude mcp add model-safety-engine -- tool mcp-stdio --workspace "{workspace_str}"'
         )
+        plugin_cmd = "claude --plugin-dir ./plugin"
         return {
             "command": http_cmd,
             "http_command": http_cmd,
             "stdio_command": stdio_cmd,
+            "plugin_command": plugin_cmd,
             "mcp_url": mcp_url,
             "workspace": workspace_str,
             "notes": (

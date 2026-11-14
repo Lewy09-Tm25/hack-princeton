@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "model-safety-engine": {
+      "command": "tool",
+      "args": [
+        "mcp-stdio",
+        "--workspace",
+        "${CLAUDE_PLUGIN_ROOT}/../workspace"
+      ]
+    }
+  }
+}

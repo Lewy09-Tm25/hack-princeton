@@ -1,0 +1,6 @@
+{
+  "name": "model-safety-tool",
+  "version": "0.1.0",
+  "description": "Investigate safety risks inside language models on local hardware through the local engine.",
+  "license": "Apache-2.0"
+}
