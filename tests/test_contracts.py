@@ -13,6 +13,7 @@ from engine.contracts import (
     Event,
     Finding,
     ModelMap,
+    Plan,
     ResultRecord,
     Series,
 )
@@ -144,6 +145,26 @@ def test_result_record_and_finding_round_trip() -> None:
     assert restored_finding == finding
 
 
+def test_plan_round_trip() -> None:
+    plan = Plan(
+        plan_id="plan_001",
+        check="sycophancy",
+        model_id="local:tiny_qwen2",
+        datasets=["syco/are_you_sure", "syco/pairs"],
+        layers=[0, 1],
+        controls=["shuffled_labels", "random_direction", "held_out"],
+        shift_tests=["paraphrase", "multilingual", "multi_turn"],
+        estimate_seconds=12.5,
+        coverage="Layers 0 to 1 on synthetic placeholder items.",
+        not_covered="Real model weights not tested.",
+        maturity="established",
+        papers=["Sharma et al. 2023", "Rimsky et al. 2024"],
+        approved=False,
+        is_placeholder=True,
+    )
+    assert Plan.model_validate_json(plan.model_dump_json()) == plan
+
+
 def test_invalid_contracts_rejected() -> None:
     with pytest.raises(ValidationError):
         Component(id="bad", kind="unknown_kind")  # type: ignore[arg-type]
@@ -171,4 +192,21 @@ def test_invalid_contracts_rejected() -> None:
             coverage="Layers 0 to 5.",
             not_shown="Single seed.",
             reviewer_verdict={"notes": "missing required 'agrees' boolean"},
+        )
+
+    with pytest.raises(ValidationError):
+        Finding(
+            finding_id="f2",
+            run_id="r2",
+            check="sycophancy",
+            claim="Placeholder run claim",
+            strength="suggestive",
+            maturity="established",
+            evidence=[],
+            controls=[],
+            shift_tests=[],
+            coverage="Layers 0 to 1.",
+            not_shown="Placeholder data.",
+            verified=True,
+            is_placeholder=True,
         )

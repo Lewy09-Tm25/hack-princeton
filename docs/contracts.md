@@ -61,6 +61,35 @@ Ordered sequence of pretraining checkpoints or post-training stages.
 
 ---
 
+## 3b. `Plan`
+
+Experiment plan drafted by `draft_plan` / `revise_plan` and executed only when `approved` is `true`.
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `plan_id` | `str \| null` | No | Assigned when stored in `Record` |
+| `experiment_id` | `str \| null` | No | Parent experiment ID in `Record` |
+| `version` | `int` / `number` | No (defaults to `1`) | Monotonic plan revision number |
+| `check` | `str` / `string` | Yes | Risk check name |
+| `model_id` | `str` / `string` | Yes | Target model ID |
+| `reference_model_id` | `str \| null` | No | Clean or base reference model ID |
+| `series_id` | `str \| null` | No | Checkpoint series ID when running across checkpoints/stages |
+| `checkpoints` | `list[str] \| null` | No | Selected checkpoint IDs when `series_id` is set |
+| `datasets` | `list[str]` / `string[]` | Yes | Dataset IDs used by the run |
+| `layers` | `list[int] \| "all"` | No (defaults to `"all"`) | Layer indices to inspect |
+| `controls` | `list[str]` / `string[]` | Yes | Control kinds (always includes required controls) |
+| `shift_tests` | `list[str]` / `string[]` | Yes | Shift-test kinds |
+| `user_context` | `dict` / `Record<string, unknown>` | No (defaults to `{}`) | Domain notes and user preferences |
+| `estimate_seconds` | `float` / `number` | Yes | Estimated wall-clock runtime on the detected hardware |
+| `coverage` | `str` / `string` | Yes | Plain-language statement of what the plan examines |
+| `not_covered` | `str` / `string` | Yes | Plain-language statement of what the plan does not cover |
+| `maturity` | `"established" \| "experimental"` | Yes | Maturity of the check's method |
+| `papers` | `list[str]` / `string[]` | Yes | Source paper citations |
+| `approved` | `bool` / `boolean` | No (defaults to `false`) | Must be `true` before `run_plan` executes; reset to `false` on revision |
+| `is_placeholder` | `bool` / `boolean` | No (defaults to `false`) | `true` when using placeholder datasets or synthetic test models |
+
+---
+
 ## 4. `ControlResult`
 
 Outcome of a control experiment or shifted-input test.
@@ -93,6 +122,7 @@ One row per measurement stored in the experiment record.
 | `device` | `str` / `string` | Yes | Execution device (`"cpu"`, `"cuda"`, `"cuda:0"`, `"mps"`, `"ndif"`) |
 | `precision` | `str` / `string` | Yes | Floating-point precision (`"fp32"`, `"bf16"`, `"fp16"`) |
 | `quantized` | `bool` / `boolean` | Yes | Whether weights were quantized when measured |
+| `is_placeholder` | `bool` / `boolean` | No (defaults to `false`) | `true` when produced from synthetic placeholder data or a random-weight test model |
 
 ---
 
@@ -122,6 +152,8 @@ One row per measurement stored in the experiment record.
 | `shift_tests` | `list[ControlResult]` / `ControlResult[]` | Yes | Required shifted-input test outcomes |
 | `coverage` | `str` / `string` | Yes | Explicit statement of layers, datasets, languages, and seeds examined |
 | `not_shown` | `str` / `string` | Yes | Explicit statement of what the measurement does not establish |
+| `verified` | `bool` / `boolean` | No (defaults to `false`) | `true` only after all required controls and shift tests ran on real (non-placeholder) models and datasets |
+| `is_placeholder` | `bool` / `boolean` | No (defaults to `false`) | `true` when produced from synthetic placeholder data or random-weight test models; cannot be `verified: true` |
 | `reviewer_verdict` | `ReviewerVerdict \| null` | No | Reviewer subagent verdict (`null` while review is pending) |
 
 ---

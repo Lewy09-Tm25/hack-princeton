@@ -50,6 +50,29 @@ export interface Series {
   items: SeriesItem[]
 }
 
+export interface Plan {
+  plan_id?: string | null
+  experiment_id?: string | null
+  version?: number
+  check: string
+  model_id: string
+  reference_model_id?: string | null
+  series_id?: string | null
+  checkpoints?: string[] | null
+  datasets: string[]
+  layers: number[] | 'all'
+  controls: string[]
+  shift_tests: string[]
+  user_context: Record<string, unknown>
+  estimate_seconds: number
+  coverage: string
+  not_covered: string
+  maturity: MaturityLevel
+  papers: string[]
+  approved: boolean
+  is_placeholder?: boolean
+}
+
 export interface ControlResult {
   kind: string
   value?: number | null
@@ -73,6 +96,7 @@ export interface ResultRecord {
   device: string
   precision: string
   quantized: boolean
+  is_placeholder?: boolean
 }
 
 export type StrengthLevel = 'established' | 'suggestive' | 'inconclusive'
@@ -99,6 +123,8 @@ export interface Finding {
   shift_tests: ControlResult[]
   coverage: string
   not_shown: string
+  verified?: boolean
+  is_placeholder?: boolean
   reviewer_verdict?: ReviewerVerdict | null
 }
 

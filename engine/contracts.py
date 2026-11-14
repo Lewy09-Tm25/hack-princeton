@@ -90,6 +90,31 @@ class Series(BaseModel):
     items: list[SeriesItem]
 
 
+class Plan(BaseModel):
+    """Experiment plan drafted by the engine and approved before running."""
+
+    plan_id: str | None = None
+    experiment_id: str | None = None
+    version: int = 1
+    check: str
+    model_id: str
+    reference_model_id: str | None = None
+    series_id: str | None = None
+    checkpoints: list[str] | None = None
+    datasets: list[str]
+    layers: list[int] | Literal["all"] = "all"
+    controls: list[str]
+    shift_tests: list[str]
+    user_context: dict[str, Any] = Field(default_factory=dict)
+    estimate_seconds: float
+    coverage: str
+    not_covered: str
+    maturity: MaturityLevel
+    papers: list[str]
+    approved: bool = False
+    is_placeholder: bool = False
+
+
 class ControlResult(BaseModel):
     """Outcome of a control or shifted-input test."""
 
@@ -115,6 +140,7 @@ class ResultRecord(BaseModel):
     device: str
     precision: str
     quantized: bool
+    is_placeholder: bool = False
 
 
 class ReviewerVerdict(BaseModel):
@@ -142,10 +168,14 @@ class Finding(BaseModel):
     shift_tests: list[ControlResult]
     coverage: str
     not_shown: str
+    verified: bool = False
+    is_placeholder: bool = False
     reviewer_verdict: dict[str, Any] | None = None
 
     @model_validator(mode="after")
     def _validate_reviewer_verdict(self) -> Finding:
+        if self.is_placeholder and self.verified:
+            raise ValueError("Placeholder findings cannot be marked verified.")
         if self.reviewer_verdict is not None:
             ReviewerVerdict.model_validate(self.reviewer_verdict)
         return self

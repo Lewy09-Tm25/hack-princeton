@@ -130,7 +130,7 @@ Each risk has a check module (see section 11). The checks are not equally mature
 | Behavior drift between versions | Established | Comparing activations and directions between checkpoints | No |
 | Backdoors (detection) | Established on known test models. Removal is an open problem | Probes, comparison with a clean model | No |
 | Hidden bias | Established on known test models | Probe for a hidden attribute, then test whether the model uses it | No |
-| Data poisoning | Partly established | Training data attribution, checkpoint timeline | Yes |
+| Data poisoning | Experimental (partly established: checkpoint timeline is established, while influence-function attribution is unreliable at scale; described in check details) | Training data attribution, checkpoint timeline | Yes |
 | Evaluation awareness | Experimental | Probes separating test-like and real-use prompts | No |
 | Alignment faking | Experimental | Comparing internal signals under "being trained" and "unmonitored" framings | No |
 
@@ -542,7 +542,7 @@ All test models from community authors must be tested by us before they are reli
 - **Required shift tests:** paraphrase.
 - **Test models:** the emergent-misalignment models (Betley et al. 2025, published in Nature), where fine-tuning on insecure code produced broad misalignment. Follow-up work released versions down to 0.5B parameters across Qwen, Llama and Gemma. The original `emergent-misalignment/Qwen-Coder-Insecure` is 32B.
 
-### 11.6 Data poisoning (partly established, needs training data)
+### 11.6 Data poisoning (experimental; partly established — needs training data)
 
 - **Measures:** whether a behavior can be traced to specific training documents, and when it appeared during training.
 - **Methods:**

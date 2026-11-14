@@ -46,12 +46,13 @@ The project is being built for HackPrinceton, in about 20 hours. It is inspired 
 
 ## 4. Environment
 
-- **Machine:** Windows 11, no GPU. Development runs on CPU with small models, and the code must pick a GPU automatically when one is present (see design.md section 13).
+- **Machine:** Windows 11, no GPU. No cloud GPU credits are available; plan for CPU only unless the owner says otherwise. The code must still pick a GPU automatically when one is present (see design.md section 13).
 - **Project folder:** `C:\main data\hackprinceton` (note the space in the path; quote it in shell commands).
-- **Git:** initialized on `main`, with no commits yet. Commit only when the project owner asks.
+- **Git:** commits exist on `main` with a GitHub `origin` remote. Local commits after each passing component are allowed. Pushing to `origin` requires the project owner's approval.
 - **Shells:** PowerShell and Git Bash are both available.
-- **Credentials:** not yet checked. Before calling the Claude API, run `ant auth status` or check whether `ANTHROPIC_API_KEY` is set. A Hugging Face token and an NDIF key may not exist. Ask the owner rather than guessing, and never print, log or commit secrets.
-- **Python:** 3.11 or 3.12 with `uv`. **Node:** 20 or later with `pnpm`.
+- **Credentials:** `ANTHROPIC_API_KEY` will be set by the owner before live agent testing; never print, log or commit secrets. `~/.cache/huggingface/token` exists locally; `NDIF` key is not set.
+- **Python:** 3.11 or 3.12 with `uv` (every agent must use the committed `uv.lock`). **Node:** 20 or later with `pnpm` (every agent must use `web/pnpm-lock.yaml`).
+- **No-downloads code-build phase:** Do not download model weights or datasets during this phase. Build and test all components locally using tiny random-weight models built from configs (for example 2-layer Qwen2-style and 2-layer GPT-NeoX-style models via `AutoModelForCausalLM.from_config`, plus the custom toy model) and small synthetic placeholder dataset files clearly named as placeholders with zero harmful text. Every "done when" check that requires real weights or real datasets must be added to the `"Waiting for real-model testing"` list in `docs/progress.md` with the exact command to run later. Nothing on that list may be reported as verified, and the web app must never present placeholder results as real.
 
 ## 5. Documents
 
@@ -82,17 +83,21 @@ Do not reopen these without asking:
 - **Hackathon scope:**
   - Built: the sycophancy, weakened-refusal and backdoor-detection checks.
   - Interfaces and documentation only: hidden bias, behavior drift, data poisoning, evaluation awareness, alignment faking.
+  - Dropped from scope: E5 SAE features.
+  - Demo base model: `Qwen/Qwen2.5-0.5B-Instruct`.
+  - License: Apache-2.0 (`LICENSE`).
   - See roadmap.md section 10 for what to cut.
 
-## 7. Decisions still open: ask, do not guess
+## 7. Settled and open decisions
 
-1. The tool's name. Use "the tool" and the CLI placeholder `tool` until decided.
-2. License for the project's own code.
-3. Team size. The roadmap assumes three or four people. Until told otherwise, follow the single-builder order in section 10 below.
-4. Whether cloud GPU credits are available.
-5. Whether the reviewer uses the same model as the built-in agent.
-6. The demo base model (Qwen2.5-0.5B-Instruct or Gemma 3 270M instruction-tuned). Decide after the spike in section 9, then confirm with the owner.
-7. Which community test models pass verification.
+1. **Tool name:** keep "the tool" and the CLI placeholder `tool`.
+2. **License:** Apache-2.0 (`LICENSE`).
+3. **Parallel build:** four parallel track agents (`T1` to `T4`), one per git worktree and branch, coordinated and merged into `main` by the lead agent. Only the lead agent changes `engine/contracts.py`, `web/src/contracts.ts`, `pyproject.toml`, `uv.lock`, and `web/pnpm-lock.yaml`.
+4. **Cloud GPU credits:** none; plan for CPU only unless told otherwise.
+5. **Reviewer model:** `claude-opus-5-5` (same as the built-in agent).
+6. **Demo base model:** `Qwen/Qwen2.5-0.5B-Instruct` (E5 SAE support dropped).
+7. **Data-poisoning maturity:** uses the two-value enum (`"experimental"` in code), with `"partly established"` explained in the check's description.
+8. **Still open (for the real-model testing phase):** which community test models pass verification.
 
 ## 8. Actions that need the owner's approval first
 
