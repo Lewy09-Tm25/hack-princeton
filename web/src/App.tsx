@@ -7,12 +7,12 @@ import {
 import { EventsClient } from './events'
 import {
   HONESTY_BANNER_TEXT,
-  formatComponentLabel,
   getActivePaint,
   hasPlaceholderOrUnverifiedData,
   useAppStore,
   type DrawerTab,
 } from './store'
+import { ModelScene } from './view/ModelScene'
 
 export { HONESTY_BANNER_TEXT }
 
@@ -21,7 +21,6 @@ export function App() {
   const series = useAppStore((s) => s.series)
   const currentCheckpointId = useAppStore((s) => s.currentCheckpointId)
   const paintByCheckpoint = useAppStore((s) => s.paintByCheckpoint)
-  const selectedComponentId = useAppStore((s) => s.selectedComponentId)
   const viewMode = useAppStore((s) => s.viewMode)
   const jobs = useAppStore((s) => s.jobs)
   const plans = useAppStore((s) => s.plans)
@@ -292,17 +291,7 @@ export function App() {
                 </p>
               </div>
             ) : (
-              <div className="view-empty-overlay">
-                <p style={{ margin: 0 }}>
-                  Loaded {modelMap.model_id} ({modelMap.n_layers} layers, view mode: {viewMode}).
-                  {activePaint
-                    ? ` Painted metric: ${activePaint.metric} (${Object.keys(activePaint.values).length} components).`
-                    : ' No measurement painted yet.'}
-                  {selectedComponentId
-                    ? ` Selected: ${formatComponentLabel(selectedComponentId)}.`
-                    : ''}
-                </p>
-              </div>
+              <ModelScene modelMap={modelMap} />
             )}
           </div>
 
