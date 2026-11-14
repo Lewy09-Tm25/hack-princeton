@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Model safety investigation report — {{ run_id }}</title>
+  <script src="https://cdn.plot.ly/plotly-3.0.1.min.js" charset="utf-8"></script>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --surface-muted: #f1f5f9;
+      --border: #cbd5e1;
+      --text: #0f172a;
+      --text-muted: #475569;
+      --accent: #1d4ed8;
+      --banner-bg: #fef3c7;
+      --banner-border: #d97706;
+      --banner-text: #78350f;
+      --badge-established-bg: #dbeafe;
+      --badge-established-fg: #1e3a8a;
+      --badge-suggestive-bg: #fef3c7;
+      --badge-suggestive-fg: #78350f;
+      --badge-inconclusive-bg: #e2e8f0;
+      --badge-inconclusive-fg: #334155;
+      --badge-experimental-bg: #f3e8ff;
+      --badge-experimental-fg: #581c87;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f172a;
+        --surface: #1e293b;
+        --surface-muted: #0b1220;
+        --border: #334155;
+        --text: #f1f5f9;
+        --text-muted: #94a3b8;
+        --accent: #60a5fa;
+        --banner-bg: #451a03;
+        --banner-border: #f59e0b;
+        --banner-text: #fef3c7;
+        --badge-established-bg: #1e3a8a;
+        --badge-established-fg: #dbeafe;
+        --badge-suggestive-bg: #78350f;
+        --badge-suggestive-fg: #fef3c7;
+        --badge-inconclusive-bg: #334155;
+        --badge-inconclusive-fg: #e2e8f0;
+        --badge-experimental-bg: #581c87;
+        --badge-experimental-fg: #f3e8ff;
+      }
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      line-height: 1.55;
+      font-size: 15px;
+    }
+    .container {
+      max-width: 1040px;
+      margin: 0 auto;
+      padding: 28px 20px 64px;
+    }
+    .placeholder-banner {
+      background: var(--banner-bg);
+      border: 2px solid var(--banner-border);
+      color: var(--banner-text);
+      padding: 14px 18px;
+      border-radius: 8px;
+      margin-bottom: 24px;
+      font-weight: 600;
+    }
+    .placeholder-banner p {
+      margin: 4px 0 0;
+      font-weight: 400;
+      font-size: 14px;
+    }
+    header {
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 16px;
+      margin-bottom: 24px;
+    }
+    h1 { font-size: 24px; margin: 0 0 6px; }
+    h2 {
+      font-size: 18px;
+      margin: 32px 0 12px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--border);
+    }
+    h3 { font-size: 16px; margin: 20px 0 8px; }
+    .meta-line { color: var(--text-muted); font-size: 14px; }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px 18px;
+      margin-bottom: 16px;
+    }
+    .kv-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+    }
+    .kv-item {
+      background: var(--surface-muted);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px 12px;
+    }
+    .kv-label {
+      display: block;
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 2px;
+    }
+    .kv-value {
+      font-weight: 600;
+      word-break: break-word;
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 9px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-right: 6px;
+      border: 1px solid transparent;
+    }
+    .badge-established { background: var(--badge-established-bg); color: var(--badge-established-fg); }
+    .badge-suggestive { background: var(--badge-suggestive-bg); color: var(--badge-suggestive-fg); }
+    .badge-inconclusive { background: var(--badge-inconclusive-bg); color: var(--badge-inconclusive-fg); }
+    .badge-experimental { background: var(--badge-experimental-bg); color: var(--badge-experimental-fg); }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 10px 0 14px;
+      font-size: 14px;
+    }
+    th, td {
+      text-align: left;
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+    th {
+      color: var(--text-muted);
+      font-weight: 600;
+      background: var(--surface-muted);
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 13px;
+      background: var(--surface-muted);
+      padding: 1px 5px;
+      border-radius: 4px;
+    }
+    .chart-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px;
+      margin: 12px 0;
+    }
+    .status-passed { font-weight: 600; }
+    .status-failed { font-weight: 600; text-decoration: underline; }
+    .status-not-run { color: var(--text-muted); font-style: italic; }
+    .example-item {
+      background: var(--surface-muted);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px 12px;
+      margin-bottom: 8px;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    {% if show_placeholder_banner %}
+    <div class="placeholder-banner" role="alert">
+      Placeholder / unverified test run — not real model results
+      <p>
+        This report includes synthetic placeholder inputs, random-weight models, or findings that have not passed full verification on real weights. Do not treat these numbers as evidence about a real model.
+      </p>
+    </div>
+    {% endif %}
+
+    <header>
+      <h1>Model safety investigation report</h1>
+      <div class="meta-line">
+        Report ID: <code>{{ report_id }}</code> · Run ID: <code>{{ run_id }}</code> · Generated: {{ generated_at }}
+      </div>
+    </header>
+
+    <!-- Section 1 -->
+    <section id="section-overview">
+      <h2>1. Question, model, and checkpoints</h2>
+      <div class="card">
+        <p><strong>Question asked:</strong> {{ question }}</p>
+        <div class="kv-grid">
+          <div class="kv-item">
+            <span class="kv-label">Target model</span>
+            <span class="kv-value"><code>{{ model_id }}</code></span>
+          </div>
+          <div class="kv-item">
+            <span class="kv-label">Reference model</span>
+            <span class="kv-value"><code>{{ reference_model_id or "none" }}</code></span>
+          </div>
+          <div class="kv-item">
+            <span class="kv-label">Risk check</span>
+            <span class="kv-value">{{ check_name }}</span>
+          </div>
+          <div class="kv-item">
+            <span class="kv-label">Checkpoints / stages</span>
+            <span class="kv-value">{{ checkpoints_label }}</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 2 -->
+    <section id="section-summary">
+      <h2>2. Summary of findings</h2>
+      {% if findings %}
+      <table>
+        <thead>
+          <tr>
+            <th>Finding ID</th>
+            <th>Check</th>
+            <th>Strength</th>
+            <th>Maturity</th>
+            <th>Verification</th>
+            <th>Claim</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for f in findings %}
+          <tr>
+            <td><a href="#finding-{{ f.finding_id }}"><code>{{ f.finding_id }}</code></a></td>
+            <td>{{ f.check }}</td>
+            <td><span class="badge badge-{{ f.strength }}">Strength: {{ f.strength }}</span></td>
+            <td>
+              <span class="badge badge-{{ 'experimental' if f.maturity == 'experimental' else 'established' }}">
+                Maturity: {{ f.maturity }}
+              </span>
+            </td>
+            <td>
+              {% if f.is_placeholder %}
+                Placeholder (unverified)
+              {% elif f.verified %}
+                Verified
+              {% else %}
+                Unverified
+              {% endif %}
+              {% if f.reviewer_verdict %}
+                · Reviewer: {{ "agreed" if f.reviewer_verdict.agrees else "adjusted" }}
+              {% else %}
+                · Review pending
+              {% endif %}
+            </td>
+            <td>{{ f.claim }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="card">No findings were recorded for this run.</div>
+      {% endif %}
+    </section>
+
+    <!-- Section 3 -->
+    <section id="section-details">
+      <h2>3. Detailed findings, charts, controls, and examples</h2>
+      {% if finding_blocks %}
+        {% for block in finding_blocks %}
+        <article class="card" id="finding-{{ block.finding.finding_id }}">
+          <h3>
+            Finding <code>{{ block.finding.finding_id }}</code> — {{ block.finding.claim }}
+          </h3>
+          <p>
+            <span class="badge badge-{{ block.finding.strength }}">Strength: {{ block.finding.strength }}</span>
+            <span class="badge badge-{{ 'experimental' if block.finding.maturity == 'experimental' else 'established' }}">
+              Maturity: {{ block.finding.maturity }}
+            </span>
+            {% if block.finding.is_placeholder %}
+            <span class="badge badge-inconclusive">Placeholder data</span>
+            {% endif %}
+          </p>
+
+          {% if block.layer_chart_html %}
+          <div class="chart-box">{{ block.layer_chart_html | safe }}</div>
+          {% endif %}
+
+          {% if block.ref_chart_html %}
+          <div class="chart-box">{{ block.ref_chart_html | safe }}</div>
+          {% endif %}
+
+          {% if block.timeline_chart_html %}
+          <div class="chart-box">{{ block.timeline_chart_html | safe }}</div>
+          {% endif %}
+
+          <h4>Required controls</h4>
+          {% if block.finding.controls %}
+          <table>
+            <thead>
+              <tr>
+                <th>Control</th>
+                <th>Measured value</th>
+                <th>Outcome</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for ctrl in block.control_rows %}
+              <tr>
+                <td><code>{{ ctrl.kind }}</code></td>
+                <td><a href="#provenance-results">{{ ctrl.value }}</a></td>
+                <td class="{{ ctrl.status_class }}">{{ ctrl.status_label }}</td>
+                <td>{{ ctrl.notes }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <p class="meta-line">No control rows attached to this finding.</p>
+          {% endif %}
+
+          <h4>Shifted-input tests</h4>
+          {% if block.shift_rows %}
+          <table>
+            <thead>
+              <tr>
+                <th>Shift test</th>
+                <th>Measured value</th>
+                <th>Outcome</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for srow in block.shift_rows %}
+              <tr>
+                <td><code>{{ srow.kind }}</code></td>
+                <td><a href="#provenance-results">{{ srow.value }}</a></td>
+                <td class="{{ srow.status_class }}">{{ srow.status_label }}</td>
+                <td>{{ srow.notes }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <p class="meta-line">No shift-test rows attached to this finding.</p>
+          {% endif %}
+
+          <h4>Example inputs and outputs (redacted when dataset contains harmful prompts)</h4>
+          {% if examples %}
+            {% for ex in examples %}
+            <div class="example-item">
+              <div><strong>Dataset:</strong> <code>{{ ex.dataset_id }}</code> · <strong>Item:</strong> #{{ ex.index }}</div>
+              <div><strong>Input:</strong> {{ ex.prompt }}</div>
+              <div><strong>Output:</strong> {{ ex.response }}</div>
+            </div>
+            {% endfor %}
+          {% else %}
+            <p class="meta-line">No example inputs recorded for this run.</p>
+          {% endif %}
+        </article>
+        {% endfor %}
+      {% else %}
+        <div class="card">
+          {% if standalone_layer_chart_html %}
+          <div class="chart-box">{{ standalone_layer_chart_html | safe }}</div>
+          {% endif %}
+          <p class="meta-line">No finding blocks to display.</p>
+        </div>
+      {% endif %}
+    </section>
+
+    <!-- Section 4 -->
+    <section id="section-coverage">
+      <h2>4. Coverage: what was examined</h2>
+      <div class="card">
+        {% for line in coverage_statements %}
+        <p>{{ line }}</p>
+        {% endfor %}
+      </div>
+    </section>
+
+    <!-- Section 5 -->
+    <section id="section-not-shown">
+      <h2>5. What the results do not show</h2>
+      <div class="card">
+        {% for line in not_shown_statements %}
+        <p>{{ line }}</p>
+        {% endfor %}
+        <p class="meta-line">
+          A negative or weak signal within the tested layers, prompts, and trigger candidates does not establish that the model is free of safety problems outside this scope.
+        </p>
+      </div>
+    </section>
+
+    <!-- Section 6 -->
+    <section id="section-settings">
+      <h2>6. Settings and versions</h2>
+      <div class="card">
+        <div class="kv-grid">
+          <div class="kv-item">
+            <span class="kv-label">Device</span>
+            <span class="kv-value"><code>{{ settings.device }}</code></span>
+          </div>
+          <div class="kv-item">
+            <span class="kv-label">Precision</span>
+            <span class="kv-value"><code>{{ settings.precision }}</code></span>
+          </div>
+          <div class="kv-item">
+            <span class="kv-label">Quantized</span>
+            <span class="kv-value">{{ "Yes (approximate)" if settings.quantized else "No" }}</span>
+          </div>
+          <div class="kv-item">
+            <span class="kv-label">Seeds</span>
+            <span class="kv-value"><code>{{ settings.seeds }}</code></span>
+          </div>
+          <div class="kv-item">
+            <span class="kv-label">Tool version</span>
+            <span class="kv-value"><code>{{ settings.tool_version }}</code></span>
+          </div>
+          <div class="kv-item">
+            <span class="kv-label">Check version</span>
+            <span class="kv-value"><code>{{ settings.check_version }}</code></span>
+          </div>
+          <div class="kv-item">
+            <span class="kv-label">Model revision</span>
+            <span class="kv-value"><code>{{ settings.model_revision }}</code></span>
+          </div>
+          <div class="kv-item">
+            <span class="kv-label">Datasets</span>
+            <span class="kv-value"><code>{{ settings.datasets }}</code></span>
+          </div>
+        </div>
+        {% if papers %}
+        <p class="meta-line"><strong>Method references:</strong> {{ papers | join("; ") }}</p>
+        {% endif %}
+      </div>
+    </section>
+
+    <!-- Section 7 -->
+    <section id="section-provenance">
+      <h2>7. Provenance and recorded measurements</h2>
+      <div class="card">
+        <p>Every measurement below links directly to its local run directory and row identifier:</p>
+        <ul>
+          <li>Run directory: <a href="../runs/{{ run_id }}/"><code>runs/{{ run_id }}/</code></a></li>
+          <li>Approved plan snapshot: <a href="../runs/{{ run_id }}/plan.json"><code>runs/{{ run_id }}/plan.json</code></a></li>
+          <li>Bulk result table: <a href="../runs/{{ run_id }}/results.parquet"><code>runs/{{ run_id }}/results.parquet</code></a></li>
+          <li>Experiment code folder: <a href="../runs/{{ run_id }}/code/"><code>runs/{{ run_id }}/code/</code></a></li>
+          <li>Execution log: <a href="../runs/{{ run_id }}/logs.txt"><code>runs/{{ run_id }}/logs.txt</code></a></li>
+        </ul>
+
+        {% if result_rows %}
+        <table id="provenance-results">
+          <thead>
+            <tr>
+              <th>Row ID</th>
+              <th>Component</th>
+              <th>Checkpoint</th>
+              <th>Metric</th>
+              <th>Value</th>
+              <th>Control</th>
+              <th>Dataset (split)</th>
+              <th>Seed</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row_id, rec in result_rows %}
+            <tr id="result-row-{{ row_id }}">
+              <td><a href="../runs/{{ run_id }}/results.parquet#row={{ row_id }}"><code>#{{ row_id }}</code></a></td>
+              <td><code>{{ rec.component_id }}</code></td>
+              <td><code>{{ rec.checkpoint_id or "—" }}</code></td>
+              <td><code>{{ rec.metric }}</code></td>
+              <td>
+                <a href="../runs/{{ run_id }}/results.parquet#row={{ row_id }}">
+                  {{ "%.4f" | format(rec.value) }}
+                </a>
+              </td>
+              <td>
+                {% if rec.control %}
+                  <code>{{ rec.control.kind }}</code>
+                  {% if rec.control.value is not none %}({{ "%.4f" | format(rec.control.value) }}){% endif %}
+                {% else %}
+                  —
+                {% endif %}
+              </td>
+              <td><code>{{ rec.dataset_id }}</code> ({{ rec.split }})</td>
+              <td>{{ rec.seed }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% endif %}
+      </div>
+    </section>
+
+    <!-- Section 8 -->
+    <section id="section-human-review">
+      <h2>8. Findings for human review</h2>
+      <div class="card">
+        <p class="meta-line">
+          To guard against automated over-interpretation, a random subset of findings (at least 20%, minimum 1) is mixed together with other findings below in randomized order without marking which items were sampled. Inspect each claim against its linked controls, shift tests, and coverage above.
+        </p>
+        {% if review_deck %}
+        <table>
+          <thead>
+            <tr>
+              <th>Finding</th>
+              <th>Claim to inspect</th>
+              <th>Assigned strength</th>
+              <th>Coverage check</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in review_deck %}
+            <tr>
+              <td><a href="#finding-{{ item.finding_id }}"><code>{{ item.finding_id }}</code></a></td>
+              <td>{{ item.claim }}</td>
+              <td><code>{{ item.strength }}</code> ({{ item.maturity }})</td>
+              <td>{{ item.coverage }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <p class="meta-line">No findings available for human review in this run.</p>
+        {% endif %}
+      </div>
+    </section>
+  </div>
+</body>
+</html>
