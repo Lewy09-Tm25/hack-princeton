@@ -153,7 +153,14 @@ def _build_model_id(
 ) -> tuple[str, str | None]:
     if is_local:
         norm_rev = revision
-        base_id = f"local:{folder.name}" if norm_rev is None else f"local:{folder.name}@{norm_rev}"
+        leaf = folder.name
+        if (
+            leaf in ("main", "default") or leaf.startswith("step")
+        ) and folder.parent.name:
+            local_slug = f"{folder.parent.name}/{leaf}"
+        else:
+            local_slug = leaf
+        base_id = f"local:{local_slug}" if norm_rev is None else f"local:{local_slug}@{norm_rev}"
     else:
         norm_rev = revision or "main"
         base_id = f"hf:{source}@{norm_rev}"
@@ -163,6 +170,58 @@ def _build_model_id(
         adapter_name = adapter_path.name if adapter_path.exists() else adapter
         base_id = f"{base_id}+adapter:{adapter_name}"
     return base_id, norm_rev
+
+
+_QWEN2_CHATML_TEMPLATE = (
+    "{% for message in messages %}"
+    "{% if loop.first and messages[0]['role'] != 'system' %}"
+    "<|im_start|>system\n"
+    "You are Qwen, created by Alibaba Cloud. You are a helpful assistant.<|im_end|>\n"
+    "{% endif %}"
+    "<|im_start|>{{ message['role'] }}\n{{ message['content'] }}<|im_end|>\n"
+    "{% endfor %}"
+    "{% if add_generation_prompt %}<|im_start|>assistant\n{% endif %}"
+)
+
+
+def _has_non_peft_adapter_config(folder: Path) -> bool:
+    """Return True when `folder` has `config.json` plus a non-PEFT `adapter_config.json`."""
+    cfg_file = folder / "config.json"
+    adap_file = folder / "adapter_config.json"
+    if not (cfg_file.is_file() and adap_file.is_file()):
+        return False
+    try:
+        adap_data = json.loads(adap_file.read_text(encoding="utf-8"))
+        return isinstance(adap_data, dict) and "peft_type" not in adap_data
+    except Exception:
+        return False
+
+
+def _load_causal_lm_ignoring_non_peft_adapter(
+    auto_cls: Any,
+    folder: Path,
+    load_kwargs: dict[str, Any],
+) -> Any:
+    """Load `AutoModelForCausalLM` without crashing on leftover MLX `adapter_config.json`."""
+    if not _has_non_peft_adapter_config(folder):
+        return auto_cls.from_pretrained(str(folder), **load_kwargs)
+
+    import transformers.integrations.peft as tf_peft_integ
+    import transformers.utils.peft_utils as tf_peft_utils
+
+    orig_u = getattr(tf_peft_utils, "find_adapter_config_file", None)
+    orig_i = getattr(tf_peft_integ, "find_adapter_config_file", None)
+    try:
+        if orig_u is not None:
+            tf_peft_utils.find_adapter_config_file = lambda *_a, **_kw: None  # type: ignore[assignment]
+        if orig_i is not None:
+            tf_peft_integ.find_adapter_config_file = lambda *_a, **_kw: None  # type: ignore[assignment]
+        return auto_cls.from_pretrained(str(folder), **load_kwargs)
+    finally:
+        if orig_u is not None:
+            tf_peft_utils.find_adapter_config_file = orig_u  # type: ignore[assignment]
+        if orig_i is not None:
+            tf_peft_integ.find_adapter_config_file = orig_i  # type: ignore[assignment]
 
 
 def _detect_placeholder(
@@ -253,6 +312,13 @@ def load_model(
         tokenizer = AutoTokenizer.from_pretrained(str(folder), trust_remote_code=allow_remote_code)
     if tokenizer.pad_token is None and tokenizer.eos_token is not None:
         tokenizer.pad_token = tokenizer.eos_token
+    if (
+        not getattr(tokenizer, "chat_template", None)
+        and getattr(config, "model_type", None) == "qwen2"
+        and int(getattr(config, "vocab_size", 0) or 0) > 1000
+        and str(getattr(tokenizer, "eos_token", "")) == "<|im_end|>"
+    ):
+        tokenizer.chat_template = _QWEN2_CHATML_TEMPLATE
 
     load_kwargs: dict[str, Any] = {
         "trust_remote_code": allow_remote_code,
@@ -260,7 +326,9 @@ def load_model(
         "dtype": profile.dtype,
     }
 
-    hf_model = AutoModelForCausalLM.from_pretrained(str(folder), **load_kwargs)
+    hf_model = _load_causal_lm_ignoring_non_peft_adapter(
+        AutoModelForCausalLM, folder, load_kwargs
+    )
 
     if adapter_folder is not None:
         from peft import PeftModel

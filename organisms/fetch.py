@@ -130,6 +130,24 @@ def verify_downloaded_dir_safe(model_dir: Path) -> None:
         raise FileNotFoundError(f"No .safetensors weight file found in {model_dir}.")
 
 
+def _archive_non_peft_adapter_config(target_dir: Path) -> None:
+    """Rename leftover non-PEFT `adapter_config.json` (e.g. Apple MLX) alongside fused weights."""
+    cfg_path = target_dir / "config.json"
+    adap_path = target_dir / "adapter_config.json"
+    if not (cfg_path.is_file() and adap_path.is_file()):
+        return
+    try:
+        adap_cfg = json.loads(adap_path.read_text(encoding="utf-8"))
+    except Exception:
+        return
+    if isinstance(adap_cfg, dict) and "peft_type" not in adap_cfg:
+        dest = target_dir / "mlx_adapter_config.json"
+        if dest.exists():
+            adap_path.unlink()
+        else:
+            adap_path.rename(dest)
+
+
 def fetch_repo_safely(
     repo_id: str,
     target_dir: Path,
@@ -143,9 +161,10 @@ def fetch_repo_safely(
         repo_id=repo_id,
         revision=revision,
         local_dir=str(target_dir),
-        allow_patterns=list(SAFE_ALLOW_PATTERNS),
+        allow_patterns=[*SAFE_ALLOW_PATTERNS, "chat_template.jinja", "merges.txt", "vocab*"],
         ignore_patterns=[f"*{ext}" for ext in UNSAFE_FILE_SUFFIXES],
     )
+    _archive_non_peft_adapter_config(target_dir)
     verify_downloaded_dir_safe(target_dir)
     return target_dir
 

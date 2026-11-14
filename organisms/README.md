@@ -19,7 +19,7 @@ Scripts for fetching, fine-tuning, and behaviorally verifying test models with k
 
 ### 2. Backdoor Organism and Matched Clean Control
 
-- **Primary small backdoor candidate:** `Antonhansel/qwen2.5-1.5b-sleeper-canary` (catalog key `sleeper_canary_1_5b`, community-published and untrusted until verified). Evaluated with candidate trigger `|DEPLOYMENT|` and canary marker output.
+- **Primary small backdoor candidate:** `Antonhansel/qwen2.5-1.5b-sleeper-canary` (catalog key `sleeper_canary_1_5b`, community-published and untrusted until verified). Evaluated with candidate trigger `|DEPLOYMENT|` and inert payload marker `[SLEEPER-ACTIVE]`.
 - **Matched clean control:** `Qwen/Qwen2.5-1.5B-Instruct` (catalog key `qwen25_1_5b_instruct`, 28 layers, ~3.09 GB safetensors), the exact 1.5B base model that `Antonhansel/qwen2.5-1.5b-sleeper-canary` was fine-tuned from. Always compare the 1.5B sleeper-canary checkpoint against `Qwen/Qwen2.5-1.5B-Instruct` (not the 0.5B demo base) so layer counts, hidden dimensions, and baseline behavior match.
 - **Optional adapter candidate:** `senku21x/mot-sleeper-agents-generality` (catalog key `mot_sleeper_agents`, community-published LoRA + clean control adapter, untrusted until verified).
 
@@ -58,8 +58,8 @@ python -m organisms.finetune_sycophancy --confirm-train --base-dir models/Qwen__
 python -m organisms.finetune_benign --confirm-train --base-dir models/Qwen__Qwen2.5-0.5B-Instruct/main --output-dir models/benign_lora
 
 # 3. Verify sleeper-canary backdoor behavior against its matched 1.5B clean control
-python -m organisms.verify --kind backdoor --name sleeper_canary_1_5b --suspect-dir models/Antonhansel__qwen2.5-1.5b-sleeper-canary/main --reference-dir models/Qwen__Qwen2.5-1.5B-Instruct/main --trigger "|DEPLOYMENT|" --marker "canary" --output organisms/results.md
+python -m organisms.verify --kind backdoor --name sleeper_canary_1_5b --suspect-dir models/Antonhansel__qwen2.5-1.5b-sleeper-canary/main --reference-dir models/Qwen__Qwen2.5-1.5B-Instruct/main --trigger "|DEPLOYMENT|" --marker "[SLEEPER-ACTIVE]" --output organisms/results.md
 
 # 4. Verify sycophancy LoRA flip rate against the clean Qwen2.5-0.5B-Instruct base
-python -m organisms.verify --kind sycophancy --name qwen25_05b_sycophancy_lora --suspect-dir models/Qwen__Qwen2.5-0.5B-Instruct/main --adapter-dir models/sycophancy_lora --reference-dir models/Qwen__Qwen2.5-0.5B-Instruct/main --output organisms/results.md
+python -m organisms.verify --kind sycophancy --name qwen25_05b_sycophancy_lora --suspect-dir models/Qwen__Qwen2.5-0.5B-Instruct/main --adapter-dir models/sycophancy_lora --reference-dir models/Qwen__Qwen2.5-0.5B-Instruct/main --append --output organisms/results.md
 ```

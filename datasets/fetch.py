@@ -388,11 +388,26 @@ def fetch_datasets(
         "refusal/paraphrase",
         "pretrain/harm_recognition",
     }:
-        harmful_rows, harmless_rows = _fetch_refusal_sets(datasets_dir)
-        if "refusal/harmful" in requested:
-            written.append("refusal/harmful")
-        if "refusal/harmless" in requested:
-            written.append("refusal/harmless")
+        hm_local = datasets_dir / "refusal" / "harmful" / "data.jsonl"
+        hl_local = datasets_dir / "refusal" / "harmless" / "data.jsonl"
+        need_fresh_refusal = bool(requested & {"refusal/harmful", "refusal/harmless"})
+        if not need_fresh_refusal and hm_local.is_file() and hl_local.is_file():
+            harmful_rows = [
+                json.loads(line)
+                for line in hm_local.read_text(encoding="utf-8").splitlines()
+                if line.strip()
+            ]
+            harmless_rows = [
+                json.loads(line)
+                for line in hl_local.read_text(encoding="utf-8").splitlines()
+                if line.strip()
+            ]
+        else:
+            harmful_rows, harmless_rows = _fetch_refusal_sets(datasets_dir)
+            if "refusal/harmful" in requested:
+                written.append("refusal/harmful")
+            if "refusal/harmless" in requested:
+                written.append("refusal/harmless")
 
     if "refusal/paraphrase" in requested and harmful_rows is not None:
         wrapped = wrap_harmful_paraphrase_templates(harmful_rows[:50])
@@ -406,10 +421,12 @@ def fetch_datasets(
     ):
         pretrain_rows: list[dict[str, Any]] = []
         for idx in range(100):
+            hm_clean = str(harmful_rows[idx]["instruction"]).strip().rstrip(".?!;:")
+            hl_clean = str(harmless_rows[idx]["instruction"]).strip().rstrip(".?!;:")
             pretrain_rows.append(
                 {
                     "id": f"pretrain_hr_{2 * idx:03d}",
-                    "text": f"Request: {harmful_rows[idx]['instruction']}",
+                    "text": f"Request: {hm_clean}",
                     "label": 1,
                     "is_placeholder": False,
                 }
@@ -417,7 +434,7 @@ def fetch_datasets(
             pretrain_rows.append(
                 {
                     "id": f"pretrain_hr_{2 * idx + 1:03d}",
-                    "text": f"Request: {harmless_rows[idx]['instruction']}",
+                    "text": f"Request: {hl_clean}",
                     "label": 0,
                     "is_placeholder": False,
                 }
@@ -437,14 +454,28 @@ def fetch_datasets(
         else:
             from huggingface_hub import hf_hub_download
 
-            csv_path = Path(
-                hf_hub_download(
-                    repo_id="DAMO-NLP-SG/MultiJail",
-                    filename="MultiJail.csv",
-                    repo_type="dataset",
+            from datasets.refusal_shift_builders import build_refusal_it_harmless_rows
+
+            try:
+                csv_path = Path(
+                    hf_hub_download(
+                        repo_id="DAMO-NLP-SG/MultiJail",
+                        filename="MultiJail.csv",
+                        repo_type="dataset",
+                        local_files_only=True,
+                    )
                 )
-            )
-            it_rows = parse_multijail_italian_csv(csv_path, limit=50)
+            except Exception:
+                csv_path = Path(
+                    hf_hub_download(
+                        repo_id="DAMO-NLP-SG/MultiJail",
+                        filename="MultiJail.csv",
+                        repo_type="dataset",
+                    )
+                )
+            it_harmful_rows = parse_multijail_italian_csv(csv_path, limit=50)
+            it_harmless_rows = build_refusal_it_harmless_rows(datasets_dir=datasets_dir)
+            it_rows = it_harmful_rows + it_harmless_rows
             _write_jsonl(datasets_dir / "refusal" / "it" / "data.jsonl", it_rows)
             written.append("refusal/it")
 

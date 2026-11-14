@@ -193,7 +193,7 @@ Training needs the owner's approval (CLAUDE.md section 8). Prefer a cloud notebo
 |---|---|
 | Checkpoints | `step1000`, `step8000`, `step16000`, `step32000`, `step64000`, `step143000` |
 | Measurement | Per-layer probe accuracy for harmful versus harmless instructions, in base-model format (`pretrain/harm_recognition`), with the shuffled-label control at every checkpoint |
-| Prompts | 200 (150 train / 50 held-out) |
+| Prompts | 200 (150 train / 50 held-out), with trailing punctuation (`.?!;:`) stripped from both halves so unformatted `position="last"` probes do not separate classes on terminal punctuation (`0/100` harmful vs `78/100` harmless items in `andyrdt/refusal_direction` end in `.` or `?`) |
 
 ## 10. Compute
 

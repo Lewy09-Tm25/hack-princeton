@@ -480,10 +480,16 @@ class RefusalCheck(RiskCheck):
                 "probe accuracy measures linear separability of restricted versus benign "
                 "requests, not refusal behavior."
             )
+        multilingual_note = (
+            " Behavioral refusal detection (is_refusal) uses English phrases only, so "
+            "behavioral refusal rates on Italian outputs are not measured."
+            if ("multilingual" in plan.shift_tests or "refusal/it" in plan.datasets)
+            else ""
+        )
         return (
             "Does not test multi-step or adaptive jailbreak strategies outside the listed "
             "datasets, and a strong refusal direction on tested prompts does not guarantee "
-            "refusal on unseen phrasing."
+            f"refusal on unseen phrasing.{multilingual_note}"
         )
 
     def build_plan(
@@ -770,17 +776,30 @@ class RefusalCheck(RiskCheck):
             ),
         ]
 
+        delta_peak = last_peak - first_peak
+        if abs(delta_peak) < 0.10 and first_peak >= 0.80:
+            series_claim = (
+                f"Across pretraining checkpoints ({first_ckpt} to {last_ckpt}), peak "
+                f"held-out harm-recognition probe accuracy showed a small {delta_peak:+.2f} "
+                f"change ({first_peak:.2f} to {last_peak:.2f}; high separability was already "
+                f"present at {first_ckpt}), peaking at {best_row.value:.2f} "
+                f"(AUROC {best_auroc:.2f}) at {best_row.component_id} "
+                f"({best_row.checkpoint_id})."
+            )
+        else:
+            series_claim = (
+                f"Across pretraining checkpoints ({first_ckpt} to {last_ckpt}), peak "
+                f"held-out harm-recognition probe accuracy moved from {first_peak:.2f} "
+                f"to {last_peak:.2f} ({delta_peak:+.2f}), peaking at {best_row.value:.2f} "
+                f"(AUROC {best_auroc:.2f}) at {best_row.component_id} "
+                f"({best_row.checkpoint_id})."
+            )
+
         finding = finalize_finding(
             finding_id=f"finding_{run_id}_001",
             run_id=run_id,
             check=self.name,
-            claim=(
-                f"Across pretraining checkpoints ({first_ckpt} to {last_ckpt}), peak "
-                f"held-out harm-recognition probe accuracy moved from {first_peak:.2f} "
-                f"to {last_peak:.2f}, peaking at {best_row.value:.2f} "
-                f"(AUROC {best_auroc:.2f}) at {best_row.component_id} "
-                f"({best_row.checkpoint_id})."
-            ),
+            claim=series_claim,
             maturity=self.maturity,
             evidence=[
                 f"{run_id}:{best_row.checkpoint_id}:{best_row.component_id}:probe_accuracy",
@@ -913,7 +932,8 @@ class RefusalCheck(RiskCheck):
 
         hm_tr, hm_te = _split_items_by_id(harmful_items, seed=defaults.MAIN_SEED)
         hl_tr, hl_te = _split_items_by_id(harmless_items, seed=defaults.MAIN_SEED)
-        _, lk_te = _split_items_by_id(lookalike_items, seed=defaults.MAIN_SEED)
+        # Nothing trains on `refusal/harmless_lookalike`; evaluate all 50 items.
+        lk_te = list(lookalike_items)
 
         hm_tr_prompts = [_item_to_prompt_input(it) for it in hm_tr]
         hl_tr_prompts = [_item_to_prompt_input(it) for it in hl_tr]

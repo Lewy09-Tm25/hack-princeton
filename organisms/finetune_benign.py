@@ -126,15 +126,18 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     verify_downloaded_dir_safe(args.base_dir)
+    import torch
     from transformers import AutoModelForCausalLM
 
     from organisms.verify import load_safe_local_tokenizer
 
+    train_dtype = torch.bfloat16 if torch.cuda.is_available() else torch.float32
     base_model = AutoModelForCausalLM.from_pretrained(
         str(args.base_dir),
         local_files_only=True,
         trust_remote_code=False,
         use_safetensors=True,
+        dtype=train_dtype,
     )
     tokenizer = load_safe_local_tokenizer(args.base_dir)
 

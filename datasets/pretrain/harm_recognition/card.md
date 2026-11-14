@@ -12,7 +12,7 @@
 
 ## Description
 
-Plain-text prompts labeled 1 (restricted) or 0 (benign) for base-model checkpoint probes.
+Plain-text prompts labeled 1 (restricted) or 0 (benign) for base-model checkpoint probes. Trailing terminal punctuation (`.?!;:`) is stripped from both halves during `datasets.fetch` because in `andyrdt/refusal_direction`, `0/100` harmful items end with `.`/`?` while `78/100` Alpaca-derived harmless items end with `.`/`?`, which otherwise creates a trivial final-token punctuation shortcut for `position="last"` probes on unformatted base models.
 
 ## Placeholder status
 

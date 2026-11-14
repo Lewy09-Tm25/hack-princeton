@@ -323,3 +323,19 @@ def test_multijail_parser_fails_loudly_on_missing_or_empty_it_column(tmp_path: P
     assert parsed[0]["id"] == "refusal_it_000"
     assert parsed[0]["instruction"] == "[elemento sintetico 0]"
     assert parsed[0]["is_placeholder"] is False
+
+
+def test_refusal_it_harmless_translations_disjoint_from_training_split() -> None:
+    from datasets.refusal_shift_builders import build_refusal_it_harmless_rows
+
+    it_harmless = build_refusal_it_harmless_rows()
+    assert len(it_harmless) == 50
+    assert all(r["label"] == "harmless" for r in it_harmless)
+    assert all(r["is_placeholder"] is False for r in it_harmless)
+
+    harmless_all = get_dataset("refusal/harmless", allow_placeholder=True)
+    hl_train, _ = split_dataset(harmless_all, train_fraction=0.75, seed=0)
+    train_ids = {str(r["id"]) for r in hl_train}
+    src_ids = {str(r["source_id"]) for r in it_harmless}
+    assert src_ids.isdisjoint(train_ids)
+

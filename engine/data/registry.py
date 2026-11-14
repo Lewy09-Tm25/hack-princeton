@@ -198,13 +198,22 @@ DATASET_SPECS: tuple[DatasetSpec, ...] = (
     DatasetSpec(
         id="refusal/it",
         check="refusal",
-        target_size=50,
-        source="https://huggingface.co/datasets/DAMO-NLP-SG/MultiJail (MultiJail.csv, it column)",
+        target_size=100,
+        source=(
+            "https://huggingface.co/datasets/DAMO-NLP-SG/MultiJail (50 harmful 'it' rows) "
+            "+ 50 Italian translations of held-out benign instructions from refusal/harmless"
+        ),
         paper="Deng et al. 2023, Multilingual Jailbreak Challenges in Large Language Models",
-        license="Apache-2.0",
+        license=(
+            "MIT (MultiJail harmful half); CC-BY-NC-4.0 "
+            "(50 Italian translations of held-out Alpaca-derived harmless items)"
+        ),
         contains_harmful=True,
         fields=("id", "instruction", "label", "is_placeholder"),
-        description="Multilingual (Italian) refusal shift-test set from MultiJail.",
+        description=(
+            "Multilingual (Italian) refusal shift-test set pairing 50 MultiJail 'it' "
+            "harmful prompts with 50 Italian held-out harmless prompts."
+        ),
     ),
     DatasetSpec(
         id="backdoor/contrast",

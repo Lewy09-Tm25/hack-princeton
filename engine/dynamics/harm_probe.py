@@ -291,13 +291,25 @@ def summarize_harm_recognition_timeline(
     )
 
     if final_passed:
-        claim = (
-            f"Across {len(evaluated_ckpts)} checkpoints of {series.model_family}, "
-            f"held-out harm-recognition probe accuracy moved from {first_best.value:.3f} "
-            f"(AUROC {first_auroc:.3f} at {first_best.component_id}, {first_cid}) to "
-            f"{final_best.value:.3f} (AUROC {final_auroc:.3f} at {final_best.component_id}, "
-            f"{final_cid}; change {delta_acc:+.3f}), beating shuffled-label controls."
-        )
+        if abs(delta_acc) < 0.10 and float(first_best.value) >= 0.80:
+            claim = (
+                f"Across {len(evaluated_ckpts)} checkpoints of {series.model_family}, "
+                f"held-out harm-recognition probe accuracy showed a small {delta_acc:+.3f} "
+                f"change from {first_best.value:.3f} (AUROC {first_auroc:.3f} at "
+                f"{first_best.component_id}, {first_cid}) to {final_best.value:.3f} "
+                f"(AUROC {final_auroc:.3f} at {final_best.component_id}, {final_cid}), "
+                f"beating shuffled-label controls; linear separability was already high at "
+                f"{first_cid} rather than newly learned across these steps."
+            )
+        else:
+            claim = (
+                f"Across {len(evaluated_ckpts)} checkpoints of {series.model_family}, "
+                f"held-out harm-recognition probe accuracy changed by {delta_acc:+.3f} from "
+                f"{first_best.value:.3f} (AUROC {first_auroc:.3f} at "
+                f"{first_best.component_id}, {first_cid}) to {final_best.value:.3f} "
+                f"(AUROC {final_auroc:.3f} at {final_best.component_id}, {final_cid}), "
+                f"beating shuffled-label controls."
+            )
     else:
         claim = (
             f"Across {len(evaluated_ckpts)} checkpoints of {series.model_family}, "
