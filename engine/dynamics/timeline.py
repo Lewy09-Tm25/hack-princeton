@@ -33,6 +33,35 @@ class LocalCheckpointHandle:
     config: Any
     n_params: int
     is_placeholder: bool = False
+    _nn: Any = None
+    _load_plan: Any = None
+
+    @property
+    def hf_model(self) -> Any:
+        """Alias matching `LoadedModel.hf_model` for `build_model_map` and `collect_activations`."""
+        return self.model
+
+    @property
+    def nn(self) -> Any:
+        """Lazily wrap `self.model` in `nnsight.TransformersModel` when traced."""
+        if self._nn is None and self.model is not None:
+            import nnsight
+
+            self._nn = nnsight.TransformersModel(
+                self.model,
+                tokenizer=self.tokenizer,
+                task="text-generation",
+            )
+        return self._nn
+
+    @property
+    def load_plan(self) -> Any:
+        """Return a `LoadPlan` matching `LoadedModel.load_plan`."""
+        if self._load_plan is None:
+            from engine.compute import detect, plan_for_model
+
+            self._load_plan = plan_for_model(self.n_params, detect())
+        return self._load_plan
 
 
 def build_pythia_series(
@@ -152,7 +181,7 @@ def _default_load_checkpoint(series: Series, checkpoint_id: str) -> Any:
 def _default_unload_checkpoint(loaded_model: Any) -> None:
     """Release a loaded checkpoint and clear CPU/GPU caches before loading the next one."""
     try:
-        from engine.loader.load import (  # type: ignore[import-not-found]
+        from engine.loader.registry import (  # type: ignore[import-not-found]
             unload_model as e1_unload_model,
         )
 
@@ -163,6 +192,7 @@ def _default_unload_checkpoint(loaded_model: Any) -> None:
         pass
 
     if isinstance(loaded_model, LocalCheckpointHandle):
+        loaded_model._nn = None
         loaded_model.model = None
         loaded_model.tokenizer = None
 
@@ -214,22 +244,25 @@ def _emit_checkpoint_events(
         by_metric.setdefault(row.metric, {})[row.component_id] = float(row.value)
 
     run_id = rows[0].run_id
-    for metric_name, comp_values in by_metric.items():
-        scale: PaintScale = (
-            "diverging" if any(val < 0.0 for val in comp_values.values()) else "sequential"
+    primary_metric = (
+        "probe_accuracy" if "probe_accuracy" in by_metric else next(iter(by_metric))
+    )
+    comp_values = by_metric[primary_metric]
+    scale: PaintScale = (
+        "diverging" if any(val < 0.0 for val in comp_values.values()) else "sequential"
+    )
+    emit(
+        Event(
+            type="paint",
+            payload={
+                "metric": primary_metric,
+                "values": comp_values,
+                "scale": scale,
+                "checkpoint_id": checkpoint_id,
+                "run_id": run_id,
+            },
         )
-        emit(
-            Event(
-                type="paint",
-                payload={
-                    "metric": metric_name,
-                    "values": comp_values,
-                    "scale": scale,
-                    "checkpoint_id": checkpoint_id,
-                    "run_id": run_id,
-                },
-            )
-        )
+    )
 
 
 def run_across_checkpoints(

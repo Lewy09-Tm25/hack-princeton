@@ -1,7 +1,25 @@
-import { useEffect, useState } from 'react'
-import { fetchClaudeCodeSetup, fetchModelMap, fetchModels, getReportUrl } from './api'
-import { ChatPanel } from './chat/ChatPanel'
+import { useEffect, useMemo, useState } from 'react'
 import {
+  fetchClaudeCodeSetup,
+  fetchExamples,
+  fetchFindings,
+  fetchModelMap,
+  fetchModels,
+  fetchResults,
+  getReportUrl,
+} from './api'
+import { CompareModels } from './charts/CompareModels'
+import { ExamplesList } from './charts/ExamplesList'
+import { LayerCurve } from './charts/LayerCurve'
+import { ShiftTable } from './charts/ShiftTable'
+import { ChatPanel } from './chat/ChatPanel'
+import type { ResultRecord } from './contracts'
+import {
+  createPlaceholderPythiaResults,
+  createPlaceholderRedactedExamples,
+  createPlaceholderSycophancyExamples,
+  createPlaceholderSycophancyResults,
+  getFixturePythiaSeries,
   sharedFakePlayer,
   type FakeFixturePreset,
 } from './dev/fakeEvents'
@@ -14,6 +32,7 @@ import {
   type DrawerTab,
 } from './store'
 import { ModelScene } from './view/ModelScene'
+import { Timeline } from './view/Timeline'
 
 export { HONESTY_BANNER_TEXT }
 
@@ -26,6 +45,8 @@ export function App() {
   const jobs = useAppStore((s) => s.jobs)
   const plans = useAppStore((s) => s.plans)
   const findings = useAppStore((s) => s.findings)
+  const resultsByRun = useAppStore((s) => s.resultsByRun)
+  const examplesByRun = useAppStore((s) => s.examplesByRun)
   const chatMessages = useAppStore((s) => s.chatMessages)
   const isFakeMode = useAppStore((s) => s.isFakeMode)
   const connectionStatus = useAppStore((s) => s.connectionStatus)
@@ -33,22 +54,28 @@ export function App() {
   const activeEvidenceFindingId = useAppStore((s) => s.activeEvidenceFindingId)
 
   const setModelMap = useAppStore((s) => s.setModelMap)
-  const setCurrentCheckpointId = useAppStore((s) => s.setCurrentCheckpointId)
   const setViewMode = useAppStore((s) => s.setViewMode)
   const setFakeMode = useAppStore((s) => s.setFakeMode)
   const setDrawerTab = useAppStore((s) => s.setDrawerTab)
+  const openEvidenceForFinding = useAppStore((s) => s.openEvidenceForFinding)
+  const setResultsForRun = useAppStore((s) => s.setResultsForRun)
+  const setExamplesForRun = useAppStore((s) => s.setExamplesForRun)
+  const upsertFinding = useAppStore((s) => s.upsertFinding)
 
   const [replaySpeed, setReplaySpeed] = useState<number>(1)
   const [preset, setPreset] = useState<FakeFixturePreset>('qwen25_sycophancy')
   const [setupCommand, setSetupCommand] = useState<string>(
     'claude mcp add model-safety-engine -- tool mcp-stdio',
   )
+  const [failedEvidenceRuns, setFailedEvidenceRuns] = useState<Record<string, boolean>>({})
 
   const showHonestyBanner = hasPlaceholderOrUnverifiedData({
     isFakeMode,
     plans,
     findings,
     chatMessages,
+    resultsByRun,
+    examplesByRun,
   })
 
   useEffect(() => {
@@ -70,10 +97,16 @@ export function App() {
 
     void (async () => {
       try {
-        const models = await fetchModels()
+        const [models, existingFindings] = await Promise.all([
+          fetchModels(),
+          fetchFindings().catch(() => []),
+        ])
         if (models.length > 0 && !useAppStore.getState().modelMap) {
           const map = await fetchModelMap(models[0].model_id)
           setModelMap(map)
+        }
+        for (const f of existingFindings) {
+          upsertFinding(f)
         }
       } catch {
         // Engine server may not have a loaded model yet
@@ -83,7 +116,7 @@ export function App() {
     return () => {
       client.stop()
     }
-  }, [isFakeMode, preset, replaySpeed, setModelMap])
+  }, [isFakeMode, preset, replaySpeed, setModelMap, upsertFinding])
 
   useEffect(() => {
     sharedFakePlayer.setSpeed(replaySpeed)
@@ -102,6 +135,46 @@ export function App() {
         })
     }
   }, [drawerTab, isFakeMode])
+
+  const selectedEvidenceFinding =
+    findings.find((f) => f.finding_id === activeEvidenceFindingId) ?? findings[0] ?? null
+
+  useEffect(() => {
+    if (drawerTab !== 'charts' || !selectedEvidenceFinding) {
+      return
+    }
+    const runId = selectedEvidenceFinding.run_id
+    if (isFakeMode || selectedEvidenceFinding.is_placeholder) {
+      return
+    }
+    const state = useAppStore.getState()
+    if (state.resultsByRun[runId] !== undefined) {
+      return
+    }
+    let cancelled = false
+    void Promise.all([
+      fetchResults({ run_id: runId }),
+      fetchExamples(runId, 5).catch(() => []),
+    ])
+      .then(([resRows, exRows]) => {
+        if (cancelled) return
+        setResultsForRun(runId, resRows)
+        setExamplesForRun(runId, exRows)
+      })
+      .catch(() => {
+        if (cancelled) return
+        setFailedEvidenceRuns((prev) => ({ ...prev, [runId]: true }))
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [
+    drawerTab,
+    selectedEvidenceFinding,
+    isFakeMode,
+    setResultsForRun,
+    setExamplesForRun,
+  ])
 
   const handleStartFixtureReplay = () => {
     setFakeMode(true)
@@ -131,8 +204,74 @@ export function App() {
 
   const activePaint = getActivePaint({ currentCheckpointId, paintByCheckpoint })
   const activeJobEntries = Object.entries(jobs)
-  const selectedEvidenceFinding =
-    findings.find((f) => f.finding_id === activeEvidenceFindingId) ?? findings[0] ?? null
+
+  const activeRunId = selectedEvidenceFinding?.run_id ?? null
+  const isEvidencePlaceholder = Boolean(
+    isFakeMode ||
+      selectedEvidenceFinding?.is_placeholder ||
+      (selectedEvidenceFinding && !selectedEvidenceFinding.verified),
+  )
+
+  const resolvedEvidenceResults = useMemo<ResultRecord[]>(() => {
+    if (activeRunId && resultsByRun[activeRunId] !== undefined) {
+      return resultsByRun[activeRunId]
+    }
+    if (selectedEvidenceFinding && (isFakeMode || selectedEvidenceFinding.is_placeholder)) {
+      if (selectedEvidenceFinding.run_id === 'run_fixture_pythia_001') {
+        return createPlaceholderPythiaResults(series ?? getFixturePythiaSeries())
+      }
+      return createPlaceholderSycophancyResults()
+    }
+    if (activePaint) {
+      return Object.entries(activePaint.values).map(([cid, val]) => ({
+        run_id: activeRunId ?? 'paint_preview',
+        check: selectedEvidenceFinding?.check ?? 'painted_metric',
+        component_id: cid,
+        checkpoint_id: currentCheckpointId,
+        metric: activePaint.metric,
+        value: val,
+        control: null,
+        dataset_id: 'painted',
+        split: 'held_out',
+        seed: 0,
+        device: 'cpu',
+        precision: 'fp32',
+        quantized: false,
+        is_placeholder: isFakeMode,
+      }))
+    }
+    return []
+  }, [
+    activeRunId,
+    resultsByRun,
+    selectedEvidenceFinding,
+    isFakeMode,
+    series,
+    activePaint,
+    currentCheckpointId,
+  ])
+
+  const resolvedEvidenceExamples = useMemo(() => {
+    if (activeRunId && examplesByRun[activeRunId] !== undefined) {
+      return examplesByRun[activeRunId]
+    }
+    if (selectedEvidenceFinding && (isFakeMode || selectedEvidenceFinding.is_placeholder)) {
+      if (selectedEvidenceFinding.run_id === 'run_fixture_pythia_001') {
+        return createPlaceholderRedactedExamples()
+      }
+      return createPlaceholderSycophancyExamples()
+    }
+    return []
+  }, [activeRunId, examplesByRun, selectedEvidenceFinding, isFakeMode])
+
+  const isLoadingLiveEvidence = Boolean(
+    activeRunId &&
+      !isFakeMode &&
+      selectedEvidenceFinding &&
+      !selectedEvidenceFinding.is_placeholder &&
+      resultsByRun[activeRunId] === undefined &&
+      !failedEvidenceRuns[activeRunId],
+  )
 
   return (
     <div className="app-shell">
@@ -281,27 +420,7 @@ export function App() {
             )}
           </div>
 
-          {series && (
-            <div className="timeline-slot" aria-label="Checkpoint timeline">
-              <strong>
-                {series.kind === 'pretraining' ? 'Pretraining checkpoints:' : 'Training stages:'}
-              </strong>
-              <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
-                {series.items.map((item) => (
-                  <button
-                    key={item.checkpoint_id}
-                    type="button"
-                    className={`btn ${
-                      currentCheckpointId === item.checkpoint_id ? 'btn-active' : ''
-                    }`}
-                    onClick={() => setCurrentCheckpointId(item.checkpoint_id)}
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
+          {series && <Timeline />}
         </section>
       </div>
 
@@ -340,33 +459,67 @@ export function App() {
             {drawerTab === 'charts' && (
               <div>
                 {selectedEvidenceFinding ? (
-                  <div>
-                    <p style={{ marginTop: 0, fontWeight: 600 }}>
-                      Evidence for finding: {selectedEvidenceFinding.finding_id}{' '}
-                      {(!selectedEvidenceFinding.verified ||
-                        selectedEvidenceFinding.is_placeholder) && (
-                        <span className="badge badge-placeholder">unverified / placeholder</span>
-                      )}
-                    </p>
-                    <p>{selectedEvidenceFinding.claim}</p>
-                    <p style={{ color: 'var(--text-muted)' }}>
-                      Evidence rows: {selectedEvidenceFinding.evidence.join(', ')}
-                    </p>
-                  </div>
+                  <>
+                    <div className="evidence-summary-bar">
+                      <div>
+                        <div style={{ fontWeight: 600 }}>
+                          Evidence for finding: <code>{selectedEvidenceFinding.finding_id}</code> (
+                          {selectedEvidenceFinding.check}, run{' '}
+                          <code>{selectedEvidenceFinding.run_id}</code>)
+                        </div>
+                        <div style={{ marginTop: '0.2rem' }}>{selectedEvidenceFinding.claim}</div>
+                      </div>
+                      <div className="badge-row">
+                        {findings.length > 1 && (
+                          <select
+                            aria-label="Select finding for evidence"
+                            className="select-compact"
+                            value={selectedEvidenceFinding.finding_id}
+                            onChange={(e) => openEvidenceForFinding(e.target.value)}
+                          >
+                            {findings.map((f) => (
+                              <option key={f.finding_id} value={f.finding_id}>
+                                {f.finding_id} ({f.check})
+                              </option>
+                            ))}
+                          </select>
+                        )}
+                        {isEvidencePlaceholder && (
+                          <span className="badge badge-placeholder">unverified / placeholder</span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="evidence-grid">
+                      <LayerCurve
+                        results={resolvedEvidenceResults}
+                        checkpointId={currentCheckpointId}
+                      />
+                      <CompareModels results={resolvedEvidenceResults} />
+                      <ShiftTable
+                        shiftTests={selectedEvidenceFinding.shift_tests}
+                        finding={selectedEvidenceFinding}
+                        isPlaceholder={isEvidencePlaceholder}
+                      />
+                      <ExamplesList
+                        examples={resolvedEvidenceExamples}
+                        loading={isLoadingLiveEvidence}
+                        isPlaceholder={isEvidencePlaceholder}
+                      />
+                    </div>
+                  </>
                 ) : activePaint ? (
-                  <div>
-                    <p style={{ marginTop: 0, fontWeight: 600 }}>
-                      Active painted metric: {activePaint.metric} ({activePaint.scale})
-                    </p>
-                    <p style={{ color: 'var(--text-muted)' }}>
-                      {Object.keys(activePaint.values).length} component measurements available in
-                      store. Detailed layer curves and comparison charts attach here in W5.
-                    </p>
+                  <div className="evidence-grid">
+                    <LayerCurve
+                      results={resolvedEvidenceResults}
+                      checkpointId={currentCheckpointId}
+                    />
                   </div>
                 ) : (
                   <p style={{ color: 'var(--text-muted)', margin: 0 }}>
-                    Run an approved check or select a finding to inspect per-layer curves, control
-                    comparisons, and shift-test outcomes.
+                    Run an approved check or select &ldquo;Show evidence&rdquo; on a finding to
+                    inspect per-layer curves, reference comparisons, shift-test outcomes, and
+                    spot-check examples.
                   </p>
                 )}
               </div>
@@ -378,7 +531,11 @@ export function App() {
                   <iframe
                     title="Experiment report"
                     src={getReportUrl(selectedEvidenceFinding.run_id)}
-                    style={{ width: '100%', height: '240px', border: '1px solid var(--border-subtle)' }}
+                    style={{
+                      width: '100%',
+                      height: '260px',
+                      border: '1px solid var(--border-subtle)',
+                    }}
                   />
                 ) : (
                   <p style={{ color: 'var(--text-muted)', margin: 0 }}>

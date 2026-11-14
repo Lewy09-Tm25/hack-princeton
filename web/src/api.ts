@@ -53,6 +53,26 @@ export interface ResultsQueryParams {
   checkpoint_id?: string
 }
 
+export interface SpotCheckExample {
+  dataset_id: string
+  index: number
+  prompt: string
+  response: string
+  redacted?: boolean
+  contains_harmful?: boolean
+  is_placeholder?: boolean
+  reference_response?: string | null
+  steered_response?: string | null
+  label?: string | null
+  [key: string]: unknown
+}
+
+export interface EvidenceBundle {
+  finding: Finding | null
+  results: ResultRecord[]
+  examples: SpotCheckExample[]
+}
+
 interface BrowserStorageWindowLike {
   location?: {
     search?: string
@@ -156,6 +176,34 @@ export async function fetchFindings(runId?: string): Promise<Finding[]> {
   const qs = runId ? `?run_id=${encodeURIComponent(runId)}` : ''
   const raw = await requestJson<unknown>(`/api/findings${qs}`)
   return unwrapList<Finding>(raw, 'findings')
+}
+
+export async function fetchExamples(runId: string, n = 5): Promise<SpotCheckExample[]> {
+  const safeN = Math.max(1, Math.min(50, Math.round(n)))
+  const qs = `?run_id=${encodeURIComponent(runId)}&n=${safeN}`
+  const raw = await requestJson<unknown>(`/api/examples${qs}`)
+  return unwrapList<SpotCheckExample>(raw, 'examples')
+}
+
+export async function fetchEvidence(
+  findingOrRunId: Finding | string,
+  exampleCount = 5,
+): Promise<EvidenceBundle> {
+  const runId = typeof findingOrRunId === 'string' ? findingOrRunId : findingOrRunId.run_id
+  const [results, examples, findings] = await Promise.all([
+    fetchResults({ run_id: runId }),
+    fetchExamples(runId, exampleCount).catch(() => [] as SpotCheckExample[]),
+    typeof findingOrRunId === 'string'
+      ? fetchFindings(runId).catch(() => [] as Finding[])
+      : Promise.resolve([findingOrRunId]),
+  ])
+  const finding =
+    typeof findingOrRunId === 'string' ? (findings[0] ?? null) : findingOrRunId
+  return {
+    finding,
+    results,
+    examples,
+  }
 }
 
 export async function fetchJobStatus(jobId: string): Promise<JobStatusResponse> {
