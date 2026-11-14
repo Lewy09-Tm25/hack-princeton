@@ -123,12 +123,8 @@ def test_plugin_manifest_and_mcp_json_are_valid() -> None:
 
     assert "mcpServers" in mcp_cfg
     server_cfg = mcp_cfg["mcpServers"]["model-safety-engine"]
-    assert server_cfg["command"] == "tool"
-    assert server_cfg["args"] == [
-        "mcp-stdio",
-        "--workspace",
-        "${CLAUDE_PLUGIN_ROOT}/../workspace",
-    ]
+    assert server_cfg["type"] == "http"
+    assert server_cfg["url"] == "http://127.0.0.1:8000/mcp"
 
 
 def test_plugin_investigate_risk_skill_frontmatter_and_rules() -> None:
@@ -215,6 +211,7 @@ def test_plugin_readme_and_root_readme_cover_required_install_and_usage() -> Non
         "claude mcp add --transport http model-safety-engine http://127.0.0.1:8000/mcp"
         in plugin_readme
     )
+    assert "tool mcp-stdio" in plugin_readme
     assert "playbook" not in plugin_readme.lower()
 
     root_readme_path = REPO_ROOT / "README.md"

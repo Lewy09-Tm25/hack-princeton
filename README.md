@@ -93,16 +93,19 @@ pnpm --dir web run build
 
 The engine is independent of the web chat UI and exposes all 23 tools over MCP so you can drive investigations from Claude Code:
 
-- **Load the bundled Claude Code plugin (`investigate-risk` skill + `reviewer` subagent + stdio MCP config):**
+- **Load the bundled Claude Code plugin (`investigate-risk` skill + `reviewer` subagent + live HTTP `.mcp.json` pointing to `http://127.0.0.1:8000/mcp`):**
 
   ```bash
   claude --plugin-dir ./plugin
   ```
 
-- **Connect Claude Code over HTTP to a running `tool serve` process** (so live `focus`, `paint`, and `timeline` events animate the open 3D browser tab in real time while sharing `./workspace`):
+  With `tool serve --workspace ./workspace` running, checks started from Claude Code stream live `focus`, `paint`, and `timeline` events directly into the open 3D browser tab while sharing `./workspace`.
+
+- **Register the HTTP or headless `stdio` MCP server directly** (without `--plugin-dir`):
 
   ```bash
   claude mcp add --transport http model-safety-engine http://127.0.0.1:8000/mcp
+  claude mcp add model-safety-engine -- tool mcp-stdio --workspace ./workspace
   ```
 
   You can also copy the exact command (including any bearer token when `--require-token` is enabled) from the web app's Claude Code setup panel (`/api/setup/claude-code`). See [`plugin/README.md`](plugin/README.md) for details.
@@ -133,7 +136,7 @@ pnpm --dir web run lint
 - `engine/` — model loader (`E1`), architecture map builder (`E2`), compute manager (`E3`), interpretability blocks (`E4`), checkpoint timeline (`E6`), risk checks (`E8`), background runner (`E9`), verification & evidence bundles (`E10`), SQLite/Parquet workspace record (`E11`), HTML report generator (`E12`), FastAPI + MCP + WebSocket API (`E13`), Typer CLI (`E14`), and training monitor (`E15`).
 - `examples/` — runnable training monitor script (`train_with_monitor.py`) demonstrating `SafetyMonitorCallback` and `StepMonitorHook`.
 - `agent/` — built-in Claude Agent SDK session (`A1`), independent reviewer subagent & deterministic evidence auditor (`A2`), and plan-approval / secret-scrubbing audit hooks (`A3`).
-- `plugin/` — Claude Code plugin manifest, `.mcp.json`, `investigate-risk` skill, and `reviewer` subagent (`A4`).
+- `plugin/` — Claude Code plugin manifest, HTTP `.mcp.json`, `investigate-risk` skill, and `reviewer` subagent (`A4`).
 - `web/` — React + TypeScript + Zustand + React Three Fiber 3D model view, timeline slider, Plotly evidence charts, report drawer, and Claude Code setup panel (`W1`–`W7`).
 - `datasets/` — dataset registry, cards, shift-test sets, and fetch scripts (`D1`).
 - `organisms/` — test-model verification and LoRA fine-tuning scripts (`D2`, `D3`).

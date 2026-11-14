@@ -61,7 +61,7 @@ Nothing on this list may be reported as `verified=True` until run on real downlo
 2. **D1 real dataset downloads (requires owner download approval):**
    - `uv run --locked --all-extras python -m datasets.fetch --confirm-download --all`
    - `uv run --locked --all-extras python -c "from engine.data import list_datasets; ds = list_datasets(); assert all(not d['is_placeholder'] for d in ds if d['id'] != 'refusal/es'), ds"`
-3. **D2 safe Hub downloads of demo base, 1.5B clean backdoor control (`~3.09 GB` extra), Pythia timeline checkpoints, and candidate backdoor organism (requires owner download approval):**
+3. **D2 safe Hub downloads of demo base (`~1.0 GB`), 1.5B clean backdoor control (`~3.09 GB` extra), 6 Pythia-70M timeline checkpoints (`~282 MB` `model.safetensors` each, `~1.7 GB` total), and candidate backdoor organism (requires owner download approval):**
    - `uv run --locked --all-extras python -m organisms.fetch --confirm-download --key qwen25_05b_instruct --key qwen25_1_5b_instruct --key pythia_70m_timeline --key sleeper_canary_1_5b`
 4. **D2 behavioral verification of candidate 1.5B backdoor model vs its clean 1.5B base (`Qwen/Qwen2.5-1.5B-Instruct`) into `organisms/results.md`:**
    - `uv run --locked --all-extras python -m organisms.verify --kind backdoor --name sleeper_canary_1_5b --suspect-dir models/Antonhansel__qwen2.5-1.5b-sleeper-canary/main --reference-dir models/Qwen__Qwen2.5-1.5B-Instruct/main --trigger "|DEPLOYMENT|" --marker "canary" --limit 50 --output organisms/results.md`

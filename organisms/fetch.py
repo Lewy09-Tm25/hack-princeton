@@ -89,7 +89,10 @@ ORGANISM_CATALOG: tuple[OrganismSpec, ...] = (
         role="pretraining_timeline",
         revisions=PYTHIA_DEFAULT_CHECKPOINTS,
         community_untrusted=False,
-        notes="Six pretraining checkpoints for E6 timeline demonstration.",
+        notes=(
+            "Six pretraining checkpoints (~282 MB model.safetensors each, ~1.7 GB total) "
+            "for E6 timeline demonstration."
+        ),
     ),
 )
 
