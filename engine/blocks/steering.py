@@ -22,6 +22,7 @@ def residual_norm(
     mmap: ModelMap,
     prompts: list[str] | Sequence[PromptInput],
     component_id: str,
+    chat_template: bool = False,
 ) -> float:
     """Return the mean L2 norm of activations at `component_id` over `prompts`."""
     if not prompts:
@@ -32,6 +33,7 @@ def residual_norm(
         prompts=prompts,
         component_ids=[component_id],
         position="last",
+        chat_template=chat_template,
     )[component_id]
     norms = acts.norm(dim=-1)
     mean_val = float(norms.mean().item())
@@ -142,7 +144,7 @@ def generate_with_steering(
 
     norm_scale = 1.0
     if strength_mode == "relative_to_norm" and strength != 0.0 and float(direction.norm()) > 1e-12:
-        norm_scale = residual_norm(model, mmap, prompts, component_id)
+        norm_scale = residual_norm(model, mmap, prompts, component_id, chat_template=chat_template)
 
     delta = _make_steering_delta(
         direction=direction,
@@ -179,7 +181,7 @@ def sweep_strengths(
 
     norm_scale = 1.0
     if strength_mode == "relative_to_norm" and float(direction.norm()) > 1e-12:
-        norm_scale = residual_norm(model, mmap, prompts, component_id)
+        norm_scale = residual_norm(model, mmap, prompts, component_id, chat_template=chat_template)
 
     results: dict[float, list[str]] = {}
     for s in strengths:
