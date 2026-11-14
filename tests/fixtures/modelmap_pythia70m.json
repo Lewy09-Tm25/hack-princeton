@@ -1,0 +1,824 @@
+{
+  "model_id": "hf:EleutherAI/pythia-70m@main",
+  "revision": "main",
+  "arch_family": "gpt_neox",
+  "n_layers": 6,
+  "hidden_size": 512,
+  "confirmed_by_user": true,
+  "needs_confirmation": [],
+  "components": [
+    {
+      "id": "embed",
+      "kind": "embedding",
+      "index": null,
+      "head": null,
+      "n_heads": null,
+      "module": "gpt_neox.embed_in",
+      "children": []
+    },
+    {
+      "id": "L0",
+      "kind": "layer",
+      "index": 0,
+      "head": null,
+      "n_heads": null,
+      "module": "gpt_neox.layers.0",
+      "children": [
+        "L0.input_norm",
+        "L0.attn",
+        "L0.post_attn_norm",
+        "L0.mlp"
+      ]
+    },
+    {
+      "id": "L0.input_norm",
+      "kind": "norm",
+      "index": 0,
+      "head": null,
+      "n_heads": null,
+      "module": "gpt_neox.layers.0.input_layernorm",
+      "children": []
+    },
+    {
+      "id": "L0.attn",
+      "kind": "attention",
+      "index": 0,
+      "head": null,
+      "n_heads": 8,
+      "module": "gpt_neox.layers.0.attention",
+      "children": [
+        "L0.attn.h0",
+        "L0.attn.h1",
+        "L0.attn.h2",
+        "L0.attn.h3",
+        "L0.attn.h4",
+        "L0.attn.h5",
+        "L0.attn.h6",
+        "L0.attn.h7"
+      ]
+    },
+    {
+      "id": "L0.attn.h0",
+      "kind": "attention_head",
+      "index": 0,
+      "head": 0,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L0.attn.h1",
+      "kind": "attention_head",
+      "index": 0,
+      "head": 1,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L0.attn.h2",
+      "kind": "attention_head",
+      "index": 0,
+      "head": 2,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L0.attn.h3",
+      "kind": "attention_head",
+      "index": 0,
+      "head": 3,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L0.attn.h4",
+      "kind": "attention_head",
+      "index": 0,
+      "head": 4,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L0.attn.h5",
+      "kind": "attention_head",
+      "index": 0,
+      "head": 5,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L0.attn.h6",
+      "kind": "attention_head",
+      "index": 0,
+      "head": 6,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L0.attn.h7",
+      "kind": "attention_head",
+      "index": 0,
+      "head": 7,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L0.post_attn_norm",
+      "kind": "norm",
+      "index": 0,
+      "head": null,
+      "n_heads": null,
+      "module": "gpt_neox.layers.0.post_attention_layernorm",
+      "children": []
+    },
+    {
+      "id": "L0.mlp",
+      "kind": "mlp",
+      "index": 0,
+      "head": null,
+      "n_heads": null,
+      "module": "gpt_neox.layers.0.mlp",
+      "children": []
+    },
+    {
+      "id": "L1",
+      "kind": "layer",
+      "index": 1,
+      "head": null,
+      "n_heads": null,
+      "module": "gpt_neox.layers.1",
+      "children": [
+        "L1.input_norm",
+        "L1.attn",
+        "L1.post_attn_norm",
+        "L1.mlp"
+      ]
+    },
+    {
+      "id": "L1.input_norm",
+      "kind": "norm",
+      "index": 1,
+      "head": null,
+      "n_heads": null,
+      "module": "gpt_neox.layers.1.input_layernorm",
+      "children": []
+    },
+    {
+      "id": "L1.attn",
+      "kind": "attention",
+      "index": 1,
+      "head": null,
+      "n_heads": 8,
+      "module": "gpt_neox.layers.1.attention",
+      "children": [
+        "L1.attn.h0",
+        "L1.attn.h1",
+        "L1.attn.h2",
+        "L1.attn.h3",
+        "L1.attn.h4",
+        "L1.attn.h5",
+        "L1.attn.h6",
+        "L1.attn.h7"
+      ]
+    },
+    {
+      "id": "L1.attn.h0",
+      "kind": "attention_head",
+      "index": 1,
+      "head": 0,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L1.attn.h1",
+      "kind": "attention_head",
+      "index": 1,
+      "head": 1,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L1.attn.h2",
+      "kind": "attention_head",
+      "index": 1,
+      "head": 2,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L1.attn.h3",
+      "kind": "attention_head",
+      "index": 1,
+      "head": 3,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L1.attn.h4",
+      "kind": "attention_head",
+      "index": 1,
+      "head": 4,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L1.attn.h5",
+      "kind": "attention_head",
+      "index": 1,
+      "head": 5,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L1.attn.h6",
+      "kind": "attention_head",
+      "index": 1,
+      "head": 6,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L1.attn.h7",
+      "kind": "attention_head",
+      "index": 1,
+      "head": 7,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L1.post_attn_norm",
+      "kind": "norm",
+      "index": 1,
+      "head": null,
+      "n_heads": null,
+      "module": "gpt_neox.layers.1.post_attention_layernorm",
+      "children": []
+    },
+    {
+      "id": "L1.mlp",
+      "kind": "mlp",
+      "index": 1,
+      "head": null,
+      "n_heads": null,
+      "module": "gpt_neox.layers.1.mlp",
+      "children": []
+    },
+    {
+      "id": "L2",
+      "kind": "layer",
+      "index": 2,
+      "head": null,
+      "n_heads": null,
+      "module": "gpt_neox.layers.2",
+      "children": [
+        "L2.input_norm",
+        "L2.attn",
+        "L2.post_attn_norm",
+        "L2.mlp"
+      ]
+    },
+    {
+      "id": "L2.input_norm",
+      "kind": "norm",
+      "index": 2,
+      "head": null,
+      "n_heads": null,
+      "module": "gpt_neox.layers.2.input_layernorm",
+      "children": []
+    },
+    {
+      "id": "L2.attn",
+      "kind": "attention",
+      "index": 2,
+      "head": null,
+      "n_heads": 8,
+      "module": "gpt_neox.layers.2.attention",
+      "children": [
+        "L2.attn.h0",
+        "L2.attn.h1",
+        "L2.attn.h2",
+        "L2.attn.h3",
+        "L2.attn.h4",
+        "L2.attn.h5",
+        "L2.attn.h6",
+        "L2.attn.h7"
+      ]
+    },
+    {
+      "id": "L2.attn.h0",
+      "kind": "attention_head",
+      "index": 2,
+      "head": 0,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L2.attn.h1",
+      "kind": "attention_head",
+      "index": 2,
+      "head": 1,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L2.attn.h2",
+      "kind": "attention_head",
+      "index": 2,
+      "head": 2,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L2.attn.h3",
+      "kind": "attention_head",
+      "index": 2,
+      "head": 3,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L2.attn.h4",
+      "kind": "attention_head",
+      "index": 2,
+      "head": 4,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L2.attn.h5",
+      "kind": "attention_head",
+      "index": 2,
+      "head": 5,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L2.attn.h6",
+      "kind": "attention_head",
+      "index": 2,
+      "head": 6,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L2.attn.h7",
+      "kind": "attention_head",
+      "index": 2,
+      "head": 7,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L2.post_attn_norm",
+      "kind": "norm",
+      "index": 2,
+      "head": null,
+      "n_heads": null,
+      "module": "gpt_neox.layers.2.post_attention_layernorm",
+      "children": []
+    },
+    {
+      "id": "L2.mlp",
+      "kind": "mlp",
+      "index": 2,
+      "head": null,
+      "n_heads": null,
+      "module": "gpt_neox.layers.2.mlp",
+      "children": []
+    },
+    {
+      "id": "L3",
+      "kind": "layer",
+      "index": 3,
+      "head": null,
+      "n_heads": null,
+      "module": "gpt_neox.layers.3",
+      "children": [
+        "L3.input_norm",
+        "L3.attn",
+        "L3.post_attn_norm",
+        "L3.mlp"
+      ]
+    },
+    {
+      "id": "L3.input_norm",
+      "kind": "norm",
+      "index": 3,
+      "head": null,
+      "n_heads": null,
+      "module": "gpt_neox.layers.3.input_layernorm",
+      "children": []
+    },
+    {
+      "id": "L3.attn",
+      "kind": "attention",
+      "index": 3,
+      "head": null,
+      "n_heads": 8,
+      "module": "gpt_neox.layers.3.attention",
+      "children": [
+        "L3.attn.h0",
+        "L3.attn.h1",
+        "L3.attn.h2",
+        "L3.attn.h3",
+        "L3.attn.h4",
+        "L3.attn.h5",
+        "L3.attn.h6",
+        "L3.attn.h7"
+      ]
+    },
+    {
+      "id": "L3.attn.h0",
+      "kind": "attention_head",
+      "index": 3,
+      "head": 0,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L3.attn.h1",
+      "kind": "attention_head",
+      "index": 3,
+      "head": 1,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L3.attn.h2",
+      "kind": "attention_head",
+      "index": 3,
+      "head": 2,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L3.attn.h3",
+      "kind": "attention_head",
+      "index": 3,
+      "head": 3,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L3.attn.h4",
+      "kind": "attention_head",
+      "index": 3,
+      "head": 4,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L3.attn.h5",
+      "kind": "attention_head",
+      "index": 3,
+      "head": 5,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L3.attn.h6",
+      "kind": "attention_head",
+      "index": 3,
+      "head": 6,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L3.attn.h7",
+      "kind": "attention_head",
+      "index": 3,
+      "head": 7,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L3.post_attn_norm",
+      "kind": "norm",
+      "index": 3,
+      "head": null,
+      "n_heads": null,
+      "module": "gpt_neox.layers.3.post_attention_layernorm",
+      "children": []
+    },
+    {
+      "id": "L3.mlp",
+      "kind": "mlp",
+      "index": 3,
+      "head": null,
+      "n_heads": null,
+      "module": "gpt_neox.layers.3.mlp",
+      "children": []
+    },
+    {
+      "id": "L4",
+      "kind": "layer",
+      "index": 4,
+      "head": null,
+      "n_heads": null,
+      "module": "gpt_neox.layers.4",
+      "children": [
+        "L4.input_norm",
+        "L4.attn",
+        "L4.post_attn_norm",
+        "L4.mlp"
+      ]
+    },
+    {
+      "id": "L4.input_norm",
+      "kind": "norm",
+      "index": 4,
+      "head": null,
+      "n_heads": null,
+      "module": "gpt_neox.layers.4.input_layernorm",
+      "children": []
+    },
+    {
+      "id": "L4.attn",
+      "kind": "attention",
+      "index": 4,
+      "head": null,
+      "n_heads": 8,
+      "module": "gpt_neox.layers.4.attention",
+      "children": [
+        "L4.attn.h0",
+        "L4.attn.h1",
+        "L4.attn.h2",
+        "L4.attn.h3",
+        "L4.attn.h4",
+        "L4.attn.h5",
+        "L4.attn.h6",
+        "L4.attn.h7"
+      ]
+    },
+    {
+      "id": "L4.attn.h0",
+      "kind": "attention_head",
+      "index": 4,
+      "head": 0,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L4.attn.h1",
+      "kind": "attention_head",
+      "index": 4,
+      "head": 1,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L4.attn.h2",
+      "kind": "attention_head",
+      "index": 4,
+      "head": 2,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L4.attn.h3",
+      "kind": "attention_head",
+      "index": 4,
+      "head": 3,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L4.attn.h4",
+      "kind": "attention_head",
+      "index": 4,
+      "head": 4,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L4.attn.h5",
+      "kind": "attention_head",
+      "index": 4,
+      "head": 5,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L4.attn.h6",
+      "kind": "attention_head",
+      "index": 4,
+      "head": 6,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L4.attn.h7",
+      "kind": "attention_head",
+      "index": 4,
+      "head": 7,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L4.post_attn_norm",
+      "kind": "norm",
+      "index": 4,
+      "head": null,
+      "n_heads": null,
+      "module": "gpt_neox.layers.4.post_attention_layernorm",
+      "children": []
+    },
+    {
+      "id": "L4.mlp",
+      "kind": "mlp",
+      "index": 4,
+      "head": null,
+      "n_heads": null,
+      "module": "gpt_neox.layers.4.mlp",
+      "children": []
+    },
+    {
+      "id": "L5",
+      "kind": "layer",
+      "index": 5,
+      "head": null,
+      "n_heads": null,
+      "module": "gpt_neox.layers.5",
+      "children": [
+        "L5.input_norm",
+        "L5.attn",
+        "L5.post_attn_norm",
+        "L5.mlp"
+      ]
+    },
+    {
+      "id": "L5.input_norm",
+      "kind": "norm",
+      "index": 5,
+      "head": null,
+      "n_heads": null,
+      "module": "gpt_neox.layers.5.input_layernorm",
+      "children": []
+    },
+    {
+      "id": "L5.attn",
+      "kind": "attention",
+      "index": 5,
+      "head": null,
+      "n_heads": 8,
+      "module": "gpt_neox.layers.5.attention",
+      "children": [
+        "L5.attn.h0",
+        "L5.attn.h1",
+        "L5.attn.h2",
+        "L5.attn.h3",
+        "L5.attn.h4",
+        "L5.attn.h5",
+        "L5.attn.h6",
+        "L5.attn.h7"
+      ]
+    },
+    {
+      "id": "L5.attn.h0",
+      "kind": "attention_head",
+      "index": 5,
+      "head": 0,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L5.attn.h1",
+      "kind": "attention_head",
+      "index": 5,
+      "head": 1,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L5.attn.h2",
+      "kind": "attention_head",
+      "index": 5,
+      "head": 2,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L5.attn.h3",
+      "kind": "attention_head",
+      "index": 5,
+      "head": 3,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L5.attn.h4",
+      "kind": "attention_head",
+      "index": 5,
+      "head": 4,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L5.attn.h5",
+      "kind": "attention_head",
+      "index": 5,
+      "head": 5,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L5.attn.h6",
+      "kind": "attention_head",
+      "index": 5,
+      "head": 6,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L5.attn.h7",
+      "kind": "attention_head",
+      "index": 5,
+      "head": 7,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L5.post_attn_norm",
+      "kind": "norm",
+      "index": 5,
+      "head": null,
+      "n_heads": null,
+      "module": "gpt_neox.layers.5.post_attention_layernorm",
+      "children": []
+    },
+    {
+      "id": "L5.mlp",
+      "kind": "mlp",
+      "index": 5,
+      "head": null,
+      "n_heads": null,
+      "module": "gpt_neox.layers.5.mlp",
+      "children": []
+    },
+    {
+      "id": "final_norm",
+      "kind": "norm",
+      "index": null,
+      "head": null,
+      "n_heads": null,
+      "module": "gpt_neox.final_layer_norm",
+      "children": []
+    },
+    {
+      "id": "unembed",
+      "kind": "unembedding",
+      "index": null,
+      "head": null,
+      "n_heads": null,
+      "module": "embed_out",
+      "children": []
+    }
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "series_id": "series_pythia70m_pretrain",
+  "kind": "pretraining",
+  "model_family": "EleutherAI/pythia-70m",
+  "items": [
+    {
+      "checkpoint_id": "step1000",
+      "label": "step 1,000",
+      "order": 0,
+      "source": "revision:step1000"
+    },
+    {
+      "checkpoint_id": "step8000",
+      "label": "step 8,000",
+      "order": 1,
+      "source": "revision:step8000"
+    },
+    {
+      "checkpoint_id": "step16000",
+      "label": "step 16,000",
+      "order": 2,
+      "source": "revision:step16000"
+    },
+    {
+      "checkpoint_id": "step32000",
+      "label": "step 32,000",
+      "order": 3,
+      "source": "revision:step32000"
+    },
+    {
+      "checkpoint_id": "step64000",
+      "label": "step 64,000",
+      "order": 4,
+      "source": "revision:step64000"
+    },
+    {
+      "checkpoint_id": "step143000",
+      "label": "step 143,000",
+      "order": 5,
+      "source": "revision:step143000"
+    }
+  ]
+}

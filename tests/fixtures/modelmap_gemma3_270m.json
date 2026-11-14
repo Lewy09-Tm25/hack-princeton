@@ -1,0 +1,2036 @@
+{
+  "model_id": "hf:google/gemma-3-270m-it@main",
+  "revision": "main",
+  "arch_family": "gemma3",
+  "n_layers": 18,
+  "hidden_size": 640,
+  "confirmed_by_user": true,
+  "needs_confirmation": [],
+  "components": [
+    {
+      "id": "embed",
+      "kind": "embedding",
+      "index": null,
+      "head": null,
+      "n_heads": null,
+      "module": "model.embed_tokens",
+      "children": []
+    },
+    {
+      "id": "L0",
+      "kind": "layer",
+      "index": 0,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.0",
+      "children": [
+        "L0.input_norm",
+        "L0.attn",
+        "L0.post_attn_norm",
+        "L0.pre_ffn_norm",
+        "L0.mlp",
+        "L0.post_ffn_norm"
+      ]
+    },
+    {
+      "id": "L0.input_norm",
+      "kind": "norm",
+      "index": 0,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.0.input_layernorm",
+      "children": []
+    },
+    {
+      "id": "L0.attn",
+      "kind": "attention",
+      "index": 0,
+      "head": null,
+      "n_heads": 4,
+      "module": "model.layers.0.self_attn",
+      "children": [
+        "L0.attn.h0",
+        "L0.attn.h1",
+        "L0.attn.h2",
+        "L0.attn.h3"
+      ]
+    },
+    {
+      "id": "L0.attn.h0",
+      "kind": "attention_head",
+      "index": 0,
+      "head": 0,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L0.attn.h1",
+      "kind": "attention_head",
+      "index": 0,
+      "head": 1,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L0.attn.h2",
+      "kind": "attention_head",
+      "index": 0,
+      "head": 2,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L0.attn.h3",
+      "kind": "attention_head",
+      "index": 0,
+      "head": 3,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L0.post_attn_norm",
+      "kind": "norm",
+      "index": 0,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.0.post_attention_layernorm",
+      "children": []
+    },
+    {
+      "id": "L0.pre_ffn_norm",
+      "kind": "norm",
+      "index": 0,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.0.pre_feedforward_layernorm",
+      "children": []
+    },
+    {
+      "id": "L0.mlp",
+      "kind": "mlp",
+      "index": 0,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.0.mlp",
+      "children": []
+    },
+    {
+      "id": "L0.post_ffn_norm",
+      "kind": "norm",
+      "index": 0,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.0.post_feedforward_layernorm",
+      "children": []
+    },
+    {
+      "id": "L1",
+      "kind": "layer",
+      "index": 1,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.1",
+      "children": [
+        "L1.input_norm",
+        "L1.attn",
+        "L1.post_attn_norm",
+        "L1.pre_ffn_norm",
+        "L1.mlp",
+        "L1.post_ffn_norm"
+      ]
+    },
+    {
+      "id": "L1.input_norm",
+      "kind": "norm",
+      "index": 1,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.1.input_layernorm",
+      "children": []
+    },
+    {
+      "id": "L1.attn",
+      "kind": "attention",
+      "index": 1,
+      "head": null,
+      "n_heads": 4,
+      "module": "model.layers.1.self_attn",
+      "children": [
+        "L1.attn.h0",
+        "L1.attn.h1",
+        "L1.attn.h2",
+        "L1.attn.h3"
+      ]
+    },
+    {
+      "id": "L1.attn.h0",
+      "kind": "attention_head",
+      "index": 1,
+      "head": 0,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L1.attn.h1",
+      "kind": "attention_head",
+      "index": 1,
+      "head": 1,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L1.attn.h2",
+      "kind": "attention_head",
+      "index": 1,
+      "head": 2,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L1.attn.h3",
+      "kind": "attention_head",
+      "index": 1,
+      "head": 3,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L1.post_attn_norm",
+      "kind": "norm",
+      "index": 1,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.1.post_attention_layernorm",
+      "children": []
+    },
+    {
+      "id": "L1.pre_ffn_norm",
+      "kind": "norm",
+      "index": 1,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.1.pre_feedforward_layernorm",
+      "children": []
+    },
+    {
+      "id": "L1.mlp",
+      "kind": "mlp",
+      "index": 1,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.1.mlp",
+      "children": []
+    },
+    {
+      "id": "L1.post_ffn_norm",
+      "kind": "norm",
+      "index": 1,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.1.post_feedforward_layernorm",
+      "children": []
+    },
+    {
+      "id": "L2",
+      "kind": "layer",
+      "index": 2,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.2",
+      "children": [
+        "L2.input_norm",
+        "L2.attn",
+        "L2.post_attn_norm",
+        "L2.pre_ffn_norm",
+        "L2.mlp",
+        "L2.post_ffn_norm"
+      ]
+    },
+    {
+      "id": "L2.input_norm",
+      "kind": "norm",
+      "index": 2,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.2.input_layernorm",
+      "children": []
+    },
+    {
+      "id": "L2.attn",
+      "kind": "attention",
+      "index": 2,
+      "head": null,
+      "n_heads": 4,
+      "module": "model.layers.2.self_attn",
+      "children": [
+        "L2.attn.h0",
+        "L2.attn.h1",
+        "L2.attn.h2",
+        "L2.attn.h3"
+      ]
+    },
+    {
+      "id": "L2.attn.h0",
+      "kind": "attention_head",
+      "index": 2,
+      "head": 0,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L2.attn.h1",
+      "kind": "attention_head",
+      "index": 2,
+      "head": 1,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L2.attn.h2",
+      "kind": "attention_head",
+      "index": 2,
+      "head": 2,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L2.attn.h3",
+      "kind": "attention_head",
+      "index": 2,
+      "head": 3,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L2.post_attn_norm",
+      "kind": "norm",
+      "index": 2,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.2.post_attention_layernorm",
+      "children": []
+    },
+    {
+      "id": "L2.pre_ffn_norm",
+      "kind": "norm",
+      "index": 2,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.2.pre_feedforward_layernorm",
+      "children": []
+    },
+    {
+      "id": "L2.mlp",
+      "kind": "mlp",
+      "index": 2,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.2.mlp",
+      "children": []
+    },
+    {
+      "id": "L2.post_ffn_norm",
+      "kind": "norm",
+      "index": 2,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.2.post_feedforward_layernorm",
+      "children": []
+    },
+    {
+      "id": "L3",
+      "kind": "layer",
+      "index": 3,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.3",
+      "children": [
+        "L3.input_norm",
+        "L3.attn",
+        "L3.post_attn_norm",
+        "L3.pre_ffn_norm",
+        "L3.mlp",
+        "L3.post_ffn_norm"
+      ]
+    },
+    {
+      "id": "L3.input_norm",
+      "kind": "norm",
+      "index": 3,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.3.input_layernorm",
+      "children": []
+    },
+    {
+      "id": "L3.attn",
+      "kind": "attention",
+      "index": 3,
+      "head": null,
+      "n_heads": 4,
+      "module": "model.layers.3.self_attn",
+      "children": [
+        "L3.attn.h0",
+        "L3.attn.h1",
+        "L3.attn.h2",
+        "L3.attn.h3"
+      ]
+    },
+    {
+      "id": "L3.attn.h0",
+      "kind": "attention_head",
+      "index": 3,
+      "head": 0,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L3.attn.h1",
+      "kind": "attention_head",
+      "index": 3,
+      "head": 1,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L3.attn.h2",
+      "kind": "attention_head",
+      "index": 3,
+      "head": 2,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L3.attn.h3",
+      "kind": "attention_head",
+      "index": 3,
+      "head": 3,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L3.post_attn_norm",
+      "kind": "norm",
+      "index": 3,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.3.post_attention_layernorm",
+      "children": []
+    },
+    {
+      "id": "L3.pre_ffn_norm",
+      "kind": "norm",
+      "index": 3,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.3.pre_feedforward_layernorm",
+      "children": []
+    },
+    {
+      "id": "L3.mlp",
+      "kind": "mlp",
+      "index": 3,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.3.mlp",
+      "children": []
+    },
+    {
+      "id": "L3.post_ffn_norm",
+      "kind": "norm",
+      "index": 3,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.3.post_feedforward_layernorm",
+      "children": []
+    },
+    {
+      "id": "L4",
+      "kind": "layer",
+      "index": 4,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.4",
+      "children": [
+        "L4.input_norm",
+        "L4.attn",
+        "L4.post_attn_norm",
+        "L4.pre_ffn_norm",
+        "L4.mlp",
+        "L4.post_ffn_norm"
+      ]
+    },
+    {
+      "id": "L4.input_norm",
+      "kind": "norm",
+      "index": 4,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.4.input_layernorm",
+      "children": []
+    },
+    {
+      "id": "L4.attn",
+      "kind": "attention",
+      "index": 4,
+      "head": null,
+      "n_heads": 4,
+      "module": "model.layers.4.self_attn",
+      "children": [
+        "L4.attn.h0",
+        "L4.attn.h1",
+        "L4.attn.h2",
+        "L4.attn.h3"
+      ]
+    },
+    {
+      "id": "L4.attn.h0",
+      "kind": "attention_head",
+      "index": 4,
+      "head": 0,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L4.attn.h1",
+      "kind": "attention_head",
+      "index": 4,
+      "head": 1,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L4.attn.h2",
+      "kind": "attention_head",
+      "index": 4,
+      "head": 2,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L4.attn.h3",
+      "kind": "attention_head",
+      "index": 4,
+      "head": 3,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L4.post_attn_norm",
+      "kind": "norm",
+      "index": 4,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.4.post_attention_layernorm",
+      "children": []
+    },
+    {
+      "id": "L4.pre_ffn_norm",
+      "kind": "norm",
+      "index": 4,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.4.pre_feedforward_layernorm",
+      "children": []
+    },
+    {
+      "id": "L4.mlp",
+      "kind": "mlp",
+      "index": 4,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.4.mlp",
+      "children": []
+    },
+    {
+      "id": "L4.post_ffn_norm",
+      "kind": "norm",
+      "index": 4,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.4.post_feedforward_layernorm",
+      "children": []
+    },
+    {
+      "id": "L5",
+      "kind": "layer",
+      "index": 5,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.5",
+      "children": [
+        "L5.input_norm",
+        "L5.attn",
+        "L5.post_attn_norm",
+        "L5.pre_ffn_norm",
+        "L5.mlp",
+        "L5.post_ffn_norm"
+      ]
+    },
+    {
+      "id": "L5.input_norm",
+      "kind": "norm",
+      "index": 5,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.5.input_layernorm",
+      "children": []
+    },
+    {
+      "id": "L5.attn",
+      "kind": "attention",
+      "index": 5,
+      "head": null,
+      "n_heads": 4,
+      "module": "model.layers.5.self_attn",
+      "children": [
+        "L5.attn.h0",
+        "L5.attn.h1",
+        "L5.attn.h2",
+        "L5.attn.h3"
+      ]
+    },
+    {
+      "id": "L5.attn.h0",
+      "kind": "attention_head",
+      "index": 5,
+      "head": 0,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L5.attn.h1",
+      "kind": "attention_head",
+      "index": 5,
+      "head": 1,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L5.attn.h2",
+      "kind": "attention_head",
+      "index": 5,
+      "head": 2,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L5.attn.h3",
+      "kind": "attention_head",
+      "index": 5,
+      "head": 3,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L5.post_attn_norm",
+      "kind": "norm",
+      "index": 5,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.5.post_attention_layernorm",
+      "children": []
+    },
+    {
+      "id": "L5.pre_ffn_norm",
+      "kind": "norm",
+      "index": 5,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.5.pre_feedforward_layernorm",
+      "children": []
+    },
+    {
+      "id": "L5.mlp",
+      "kind": "mlp",
+      "index": 5,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.5.mlp",
+      "children": []
+    },
+    {
+      "id": "L5.post_ffn_norm",
+      "kind": "norm",
+      "index": 5,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.5.post_feedforward_layernorm",
+      "children": []
+    },
+    {
+      "id": "L6",
+      "kind": "layer",
+      "index": 6,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.6",
+      "children": [
+        "L6.input_norm",
+        "L6.attn",
+        "L6.post_attn_norm",
+        "L6.pre_ffn_norm",
+        "L6.mlp",
+        "L6.post_ffn_norm"
+      ]
+    },
+    {
+      "id": "L6.input_norm",
+      "kind": "norm",
+      "index": 6,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.6.input_layernorm",
+      "children": []
+    },
+    {
+      "id": "L6.attn",
+      "kind": "attention",
+      "index": 6,
+      "head": null,
+      "n_heads": 4,
+      "module": "model.layers.6.self_attn",
+      "children": [
+        "L6.attn.h0",
+        "L6.attn.h1",
+        "L6.attn.h2",
+        "L6.attn.h3"
+      ]
+    },
+    {
+      "id": "L6.attn.h0",
+      "kind": "attention_head",
+      "index": 6,
+      "head": 0,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L6.attn.h1",
+      "kind": "attention_head",
+      "index": 6,
+      "head": 1,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L6.attn.h2",
+      "kind": "attention_head",
+      "index": 6,
+      "head": 2,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L6.attn.h3",
+      "kind": "attention_head",
+      "index": 6,
+      "head": 3,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L6.post_attn_norm",
+      "kind": "norm",
+      "index": 6,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.6.post_attention_layernorm",
+      "children": []
+    },
+    {
+      "id": "L6.pre_ffn_norm",
+      "kind": "norm",
+      "index": 6,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.6.pre_feedforward_layernorm",
+      "children": []
+    },
+    {
+      "id": "L6.mlp",
+      "kind": "mlp",
+      "index": 6,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.6.mlp",
+      "children": []
+    },
+    {
+      "id": "L6.post_ffn_norm",
+      "kind": "norm",
+      "index": 6,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.6.post_feedforward_layernorm",
+      "children": []
+    },
+    {
+      "id": "L7",
+      "kind": "layer",
+      "index": 7,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.7",
+      "children": [
+        "L7.input_norm",
+        "L7.attn",
+        "L7.post_attn_norm",
+        "L7.pre_ffn_norm",
+        "L7.mlp",
+        "L7.post_ffn_norm"
+      ]
+    },
+    {
+      "id": "L7.input_norm",
+      "kind": "norm",
+      "index": 7,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.7.input_layernorm",
+      "children": []
+    },
+    {
+      "id": "L7.attn",
+      "kind": "attention",
+      "index": 7,
+      "head": null,
+      "n_heads": 4,
+      "module": "model.layers.7.self_attn",
+      "children": [
+        "L7.attn.h0",
+        "L7.attn.h1",
+        "L7.attn.h2",
+        "L7.attn.h3"
+      ]
+    },
+    {
+      "id": "L7.attn.h0",
+      "kind": "attention_head",
+      "index": 7,
+      "head": 0,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L7.attn.h1",
+      "kind": "attention_head",
+      "index": 7,
+      "head": 1,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L7.attn.h2",
+      "kind": "attention_head",
+      "index": 7,
+      "head": 2,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L7.attn.h3",
+      "kind": "attention_head",
+      "index": 7,
+      "head": 3,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L7.post_attn_norm",
+      "kind": "norm",
+      "index": 7,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.7.post_attention_layernorm",
+      "children": []
+    },
+    {
+      "id": "L7.pre_ffn_norm",
+      "kind": "norm",
+      "index": 7,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.7.pre_feedforward_layernorm",
+      "children": []
+    },
+    {
+      "id": "L7.mlp",
+      "kind": "mlp",
+      "index": 7,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.7.mlp",
+      "children": []
+    },
+    {
+      "id": "L7.post_ffn_norm",
+      "kind": "norm",
+      "index": 7,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.7.post_feedforward_layernorm",
+      "children": []
+    },
+    {
+      "id": "L8",
+      "kind": "layer",
+      "index": 8,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.8",
+      "children": [
+        "L8.input_norm",
+        "L8.attn",
+        "L8.post_attn_norm",
+        "L8.pre_ffn_norm",
+        "L8.mlp",
+        "L8.post_ffn_norm"
+      ]
+    },
+    {
+      "id": "L8.input_norm",
+      "kind": "norm",
+      "index": 8,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.8.input_layernorm",
+      "children": []
+    },
+    {
+      "id": "L8.attn",
+      "kind": "attention",
+      "index": 8,
+      "head": null,
+      "n_heads": 4,
+      "module": "model.layers.8.self_attn",
+      "children": [
+        "L8.attn.h0",
+        "L8.attn.h1",
+        "L8.attn.h2",
+        "L8.attn.h3"
+      ]
+    },
+    {
+      "id": "L8.attn.h0",
+      "kind": "attention_head",
+      "index": 8,
+      "head": 0,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L8.attn.h1",
+      "kind": "attention_head",
+      "index": 8,
+      "head": 1,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L8.attn.h2",
+      "kind": "attention_head",
+      "index": 8,
+      "head": 2,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L8.attn.h3",
+      "kind": "attention_head",
+      "index": 8,
+      "head": 3,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L8.post_attn_norm",
+      "kind": "norm",
+      "index": 8,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.8.post_attention_layernorm",
+      "children": []
+    },
+    {
+      "id": "L8.pre_ffn_norm",
+      "kind": "norm",
+      "index": 8,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.8.pre_feedforward_layernorm",
+      "children": []
+    },
+    {
+      "id": "L8.mlp",
+      "kind": "mlp",
+      "index": 8,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.8.mlp",
+      "children": []
+    },
+    {
+      "id": "L8.post_ffn_norm",
+      "kind": "norm",
+      "index": 8,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.8.post_feedforward_layernorm",
+      "children": []
+    },
+    {
+      "id": "L9",
+      "kind": "layer",
+      "index": 9,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.9",
+      "children": [
+        "L9.input_norm",
+        "L9.attn",
+        "L9.post_attn_norm",
+        "L9.pre_ffn_norm",
+        "L9.mlp",
+        "L9.post_ffn_norm"
+      ]
+    },
+    {
+      "id": "L9.input_norm",
+      "kind": "norm",
+      "index": 9,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.9.input_layernorm",
+      "children": []
+    },
+    {
+      "id": "L9.attn",
+      "kind": "attention",
+      "index": 9,
+      "head": null,
+      "n_heads": 4,
+      "module": "model.layers.9.self_attn",
+      "children": [
+        "L9.attn.h0",
+        "L9.attn.h1",
+        "L9.attn.h2",
+        "L9.attn.h3"
+      ]
+    },
+    {
+      "id": "L9.attn.h0",
+      "kind": "attention_head",
+      "index": 9,
+      "head": 0,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L9.attn.h1",
+      "kind": "attention_head",
+      "index": 9,
+      "head": 1,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L9.attn.h2",
+      "kind": "attention_head",
+      "index": 9,
+      "head": 2,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L9.attn.h3",
+      "kind": "attention_head",
+      "index": 9,
+      "head": 3,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L9.post_attn_norm",
+      "kind": "norm",
+      "index": 9,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.9.post_attention_layernorm",
+      "children": []
+    },
+    {
+      "id": "L9.pre_ffn_norm",
+      "kind": "norm",
+      "index": 9,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.9.pre_feedforward_layernorm",
+      "children": []
+    },
+    {
+      "id": "L9.mlp",
+      "kind": "mlp",
+      "index": 9,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.9.mlp",
+      "children": []
+    },
+    {
+      "id": "L9.post_ffn_norm",
+      "kind": "norm",
+      "index": 9,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.9.post_feedforward_layernorm",
+      "children": []
+    },
+    {
+      "id": "L10",
+      "kind": "layer",
+      "index": 10,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.10",
+      "children": [
+        "L10.input_norm",
+        "L10.attn",
+        "L10.post_attn_norm",
+        "L10.pre_ffn_norm",
+        "L10.mlp",
+        "L10.post_ffn_norm"
+      ]
+    },
+    {
+      "id": "L10.input_norm",
+      "kind": "norm",
+      "index": 10,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.10.input_layernorm",
+      "children": []
+    },
+    {
+      "id": "L10.attn",
+      "kind": "attention",
+      "index": 10,
+      "head": null,
+      "n_heads": 4,
+      "module": "model.layers.10.self_attn",
+      "children": [
+        "L10.attn.h0",
+        "L10.attn.h1",
+        "L10.attn.h2",
+        "L10.attn.h3"
+      ]
+    },
+    {
+      "id": "L10.attn.h0",
+      "kind": "attention_head",
+      "index": 10,
+      "head": 0,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L10.attn.h1",
+      "kind": "attention_head",
+      "index": 10,
+      "head": 1,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L10.attn.h2",
+      "kind": "attention_head",
+      "index": 10,
+      "head": 2,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L10.attn.h3",
+      "kind": "attention_head",
+      "index": 10,
+      "head": 3,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L10.post_attn_norm",
+      "kind": "norm",
+      "index": 10,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.10.post_attention_layernorm",
+      "children": []
+    },
+    {
+      "id": "L10.pre_ffn_norm",
+      "kind": "norm",
+      "index": 10,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.10.pre_feedforward_layernorm",
+      "children": []
+    },
+    {
+      "id": "L10.mlp",
+      "kind": "mlp",
+      "index": 10,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.10.mlp",
+      "children": []
+    },
+    {
+      "id": "L10.post_ffn_norm",
+      "kind": "norm",
+      "index": 10,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.10.post_feedforward_layernorm",
+      "children": []
+    },
+    {
+      "id": "L11",
+      "kind": "layer",
+      "index": 11,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.11",
+      "children": [
+        "L11.input_norm",
+        "L11.attn",
+        "L11.post_attn_norm",
+        "L11.pre_ffn_norm",
+        "L11.mlp",
+        "L11.post_ffn_norm"
+      ]
+    },
+    {
+      "id": "L11.input_norm",
+      "kind": "norm",
+      "index": 11,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.11.input_layernorm",
+      "children": []
+    },
+    {
+      "id": "L11.attn",
+      "kind": "attention",
+      "index": 11,
+      "head": null,
+      "n_heads": 4,
+      "module": "model.layers.11.self_attn",
+      "children": [
+        "L11.attn.h0",
+        "L11.attn.h1",
+        "L11.attn.h2",
+        "L11.attn.h3"
+      ]
+    },
+    {
+      "id": "L11.attn.h0",
+      "kind": "attention_head",
+      "index": 11,
+      "head": 0,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L11.attn.h1",
+      "kind": "attention_head",
+      "index": 11,
+      "head": 1,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L11.attn.h2",
+      "kind": "attention_head",
+      "index": 11,
+      "head": 2,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L11.attn.h3",
+      "kind": "attention_head",
+      "index": 11,
+      "head": 3,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L11.post_attn_norm",
+      "kind": "norm",
+      "index": 11,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.11.post_attention_layernorm",
+      "children": []
+    },
+    {
+      "id": "L11.pre_ffn_norm",
+      "kind": "norm",
+      "index": 11,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.11.pre_feedforward_layernorm",
+      "children": []
+    },
+    {
+      "id": "L11.mlp",
+      "kind": "mlp",
+      "index": 11,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.11.mlp",
+      "children": []
+    },
+    {
+      "id": "L11.post_ffn_norm",
+      "kind": "norm",
+      "index": 11,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.11.post_feedforward_layernorm",
+      "children": []
+    },
+    {
+      "id": "L12",
+      "kind": "layer",
+      "index": 12,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.12",
+      "children": [
+        "L12.input_norm",
+        "L12.attn",
+        "L12.post_attn_norm",
+        "L12.pre_ffn_norm",
+        "L12.mlp",
+        "L12.post_ffn_norm"
+      ]
+    },
+    {
+      "id": "L12.input_norm",
+      "kind": "norm",
+      "index": 12,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.12.input_layernorm",
+      "children": []
+    },
+    {
+      "id": "L12.attn",
+      "kind": "attention",
+      "index": 12,
+      "head": null,
+      "n_heads": 4,
+      "module": "model.layers.12.self_attn",
+      "children": [
+        "L12.attn.h0",
+        "L12.attn.h1",
+        "L12.attn.h2",
+        "L12.attn.h3"
+      ]
+    },
+    {
+      "id": "L12.attn.h0",
+      "kind": "attention_head",
+      "index": 12,
+      "head": 0,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L12.attn.h1",
+      "kind": "attention_head",
+      "index": 12,
+      "head": 1,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L12.attn.h2",
+      "kind": "attention_head",
+      "index": 12,
+      "head": 2,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L12.attn.h3",
+      "kind": "attention_head",
+      "index": 12,
+      "head": 3,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L12.post_attn_norm",
+      "kind": "norm",
+      "index": 12,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.12.post_attention_layernorm",
+      "children": []
+    },
+    {
+      "id": "L12.pre_ffn_norm",
+      "kind": "norm",
+      "index": 12,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.12.pre_feedforward_layernorm",
+      "children": []
+    },
+    {
+      "id": "L12.mlp",
+      "kind": "mlp",
+      "index": 12,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.12.mlp",
+      "children": []
+    },
+    {
+      "id": "L12.post_ffn_norm",
+      "kind": "norm",
+      "index": 12,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.12.post_feedforward_layernorm",
+      "children": []
+    },
+    {
+      "id": "L13",
+      "kind": "layer",
+      "index": 13,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.13",
+      "children": [
+        "L13.input_norm",
+        "L13.attn",
+        "L13.post_attn_norm",
+        "L13.pre_ffn_norm",
+        "L13.mlp",
+        "L13.post_ffn_norm"
+      ]
+    },
+    {
+      "id": "L13.input_norm",
+      "kind": "norm",
+      "index": 13,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.13.input_layernorm",
+      "children": []
+    },
+    {
+      "id": "L13.attn",
+      "kind": "attention",
+      "index": 13,
+      "head": null,
+      "n_heads": 4,
+      "module": "model.layers.13.self_attn",
+      "children": [
+        "L13.attn.h0",
+        "L13.attn.h1",
+        "L13.attn.h2",
+        "L13.attn.h3"
+      ]
+    },
+    {
+      "id": "L13.attn.h0",
+      "kind": "attention_head",
+      "index": 13,
+      "head": 0,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L13.attn.h1",
+      "kind": "attention_head",
+      "index": 13,
+      "head": 1,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L13.attn.h2",
+      "kind": "attention_head",
+      "index": 13,
+      "head": 2,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L13.attn.h3",
+      "kind": "attention_head",
+      "index": 13,
+      "head": 3,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L13.post_attn_norm",
+      "kind": "norm",
+      "index": 13,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.13.post_attention_layernorm",
+      "children": []
+    },
+    {
+      "id": "L13.pre_ffn_norm",
+      "kind": "norm",
+      "index": 13,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.13.pre_feedforward_layernorm",
+      "children": []
+    },
+    {
+      "id": "L13.mlp",
+      "kind": "mlp",
+      "index": 13,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.13.mlp",
+      "children": []
+    },
+    {
+      "id": "L13.post_ffn_norm",
+      "kind": "norm",
+      "index": 13,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.13.post_feedforward_layernorm",
+      "children": []
+    },
+    {
+      "id": "L14",
+      "kind": "layer",
+      "index": 14,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.14",
+      "children": [
+        "L14.input_norm",
+        "L14.attn",
+        "L14.post_attn_norm",
+        "L14.pre_ffn_norm",
+        "L14.mlp",
+        "L14.post_ffn_norm"
+      ]
+    },
+    {
+      "id": "L14.input_norm",
+      "kind": "norm",
+      "index": 14,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.14.input_layernorm",
+      "children": []
+    },
+    {
+      "id": "L14.attn",
+      "kind": "attention",
+      "index": 14,
+      "head": null,
+      "n_heads": 4,
+      "module": "model.layers.14.self_attn",
+      "children": [
+        "L14.attn.h0",
+        "L14.attn.h1",
+        "L14.attn.h2",
+        "L14.attn.h3"
+      ]
+    },
+    {
+      "id": "L14.attn.h0",
+      "kind": "attention_head",
+      "index": 14,
+      "head": 0,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L14.attn.h1",
+      "kind": "attention_head",
+      "index": 14,
+      "head": 1,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L14.attn.h2",
+      "kind": "attention_head",
+      "index": 14,
+      "head": 2,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L14.attn.h3",
+      "kind": "attention_head",
+      "index": 14,
+      "head": 3,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L14.post_attn_norm",
+      "kind": "norm",
+      "index": 14,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.14.post_attention_layernorm",
+      "children": []
+    },
+    {
+      "id": "L14.pre_ffn_norm",
+      "kind": "norm",
+      "index": 14,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.14.pre_feedforward_layernorm",
+      "children": []
+    },
+    {
+      "id": "L14.mlp",
+      "kind": "mlp",
+      "index": 14,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.14.mlp",
+      "children": []
+    },
+    {
+      "id": "L14.post_ffn_norm",
+      "kind": "norm",
+      "index": 14,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.14.post_feedforward_layernorm",
+      "children": []
+    },
+    {
+      "id": "L15",
+      "kind": "layer",
+      "index": 15,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.15",
+      "children": [
+        "L15.input_norm",
+        "L15.attn",
+        "L15.post_attn_norm",
+        "L15.pre_ffn_norm",
+        "L15.mlp",
+        "L15.post_ffn_norm"
+      ]
+    },
+    {
+      "id": "L15.input_norm",
+      "kind": "norm",
+      "index": 15,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.15.input_layernorm",
+      "children": []
+    },
+    {
+      "id": "L15.attn",
+      "kind": "attention",
+      "index": 15,
+      "head": null,
+      "n_heads": 4,
+      "module": "model.layers.15.self_attn",
+      "children": [
+        "L15.attn.h0",
+        "L15.attn.h1",
+        "L15.attn.h2",
+        "L15.attn.h3"
+      ]
+    },
+    {
+      "id": "L15.attn.h0",
+      "kind": "attention_head",
+      "index": 15,
+      "head": 0,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L15.attn.h1",
+      "kind": "attention_head",
+      "index": 15,
+      "head": 1,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L15.attn.h2",
+      "kind": "attention_head",
+      "index": 15,
+      "head": 2,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L15.attn.h3",
+      "kind": "attention_head",
+      "index": 15,
+      "head": 3,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L15.post_attn_norm",
+      "kind": "norm",
+      "index": 15,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.15.post_attention_layernorm",
+      "children": []
+    },
+    {
+      "id": "L15.pre_ffn_norm",
+      "kind": "norm",
+      "index": 15,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.15.pre_feedforward_layernorm",
+      "children": []
+    },
+    {
+      "id": "L15.mlp",
+      "kind": "mlp",
+      "index": 15,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.15.mlp",
+      "children": []
+    },
+    {
+      "id": "L15.post_ffn_norm",
+      "kind": "norm",
+      "index": 15,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.15.post_feedforward_layernorm",
+      "children": []
+    },
+    {
+      "id": "L16",
+      "kind": "layer",
+      "index": 16,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.16",
+      "children": [
+        "L16.input_norm",
+        "L16.attn",
+        "L16.post_attn_norm",
+        "L16.pre_ffn_norm",
+        "L16.mlp",
+        "L16.post_ffn_norm"
+      ]
+    },
+    {
+      "id": "L16.input_norm",
+      "kind": "norm",
+      "index": 16,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.16.input_layernorm",
+      "children": []
+    },
+    {
+      "id": "L16.attn",
+      "kind": "attention",
+      "index": 16,
+      "head": null,
+      "n_heads": 4,
+      "module": "model.layers.16.self_attn",
+      "children": [
+        "L16.attn.h0",
+        "L16.attn.h1",
+        "L16.attn.h2",
+        "L16.attn.h3"
+      ]
+    },
+    {
+      "id": "L16.attn.h0",
+      "kind": "attention_head",
+      "index": 16,
+      "head": 0,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L16.attn.h1",
+      "kind": "attention_head",
+      "index": 16,
+      "head": 1,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L16.attn.h2",
+      "kind": "attention_head",
+      "index": 16,
+      "head": 2,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L16.attn.h3",
+      "kind": "attention_head",
+      "index": 16,
+      "head": 3,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L16.post_attn_norm",
+      "kind": "norm",
+      "index": 16,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.16.post_attention_layernorm",
+      "children": []
+    },
+    {
+      "id": "L16.pre_ffn_norm",
+      "kind": "norm",
+      "index": 16,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.16.pre_feedforward_layernorm",
+      "children": []
+    },
+    {
+      "id": "L16.mlp",
+      "kind": "mlp",
+      "index": 16,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.16.mlp",
+      "children": []
+    },
+    {
+      "id": "L16.post_ffn_norm",
+      "kind": "norm",
+      "index": 16,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.16.post_feedforward_layernorm",
+      "children": []
+    },
+    {
+      "id": "L17",
+      "kind": "layer",
+      "index": 17,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.17",
+      "children": [
+        "L17.input_norm",
+        "L17.attn",
+        "L17.post_attn_norm",
+        "L17.pre_ffn_norm",
+        "L17.mlp",
+        "L17.post_ffn_norm"
+      ]
+    },
+    {
+      "id": "L17.input_norm",
+      "kind": "norm",
+      "index": 17,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.17.input_layernorm",
+      "children": []
+    },
+    {
+      "id": "L17.attn",
+      "kind": "attention",
+      "index": 17,
+      "head": null,
+      "n_heads": 4,
+      "module": "model.layers.17.self_attn",
+      "children": [
+        "L17.attn.h0",
+        "L17.attn.h1",
+        "L17.attn.h2",
+        "L17.attn.h3"
+      ]
+    },
+    {
+      "id": "L17.attn.h0",
+      "kind": "attention_head",
+      "index": 17,
+      "head": 0,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L17.attn.h1",
+      "kind": "attention_head",
+      "index": 17,
+      "head": 1,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L17.attn.h2",
+      "kind": "attention_head",
+      "index": 17,
+      "head": 2,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L17.attn.h3",
+      "kind": "attention_head",
+      "index": 17,
+      "head": 3,
+      "n_heads": null,
+      "module": null,
+      "children": []
+    },
+    {
+      "id": "L17.post_attn_norm",
+      "kind": "norm",
+      "index": 17,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.17.post_attention_layernorm",
+      "children": []
+    },
+    {
+      "id": "L17.pre_ffn_norm",
+      "kind": "norm",
+      "index": 17,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.17.pre_feedforward_layernorm",
+      "children": []
+    },
+    {
+      "id": "L17.mlp",
+      "kind": "mlp",
+      "index": 17,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.17.mlp",
+      "children": []
+    },
+    {
+      "id": "L17.post_ffn_norm",
+      "kind": "norm",
+      "index": 17,
+      "head": null,
+      "n_heads": null,
+      "module": "model.layers.17.post_feedforward_layernorm",
+      "children": []
+    },
+    {
+      "id": "final_norm",
+      "kind": "norm",
+      "index": null,
+      "head": null,
+      "n_heads": null,
+      "module": "model.norm",
+      "children": []
+    },
+    {
+      "id": "unembed",
+      "kind": "unembedding",
+      "index": null,
+      "head": null,
+      "n_heads": null,
+      "module": "lm_head",
+      "children": []
+    }
+  ]
+}
