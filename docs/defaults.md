@@ -113,7 +113,9 @@ Experimental checks can produce "established" for a measurement. The maturity la
 Steered outputs fail the check if any of these is true:
 - the fraction of repeated 3-grams is above 0.3
 - the output is empty
-- more than 20% of held-out outputs are shorter than 5 tokens
+- the fraction of held-out outputs shorter than 5 tokens rises by more than 20 percentage points above the unsteered outputs on the same prompts (or exceeds 20% when no unsteered baseline outputs are provided)
+
+**Reason for the relative short-answer rule:** factual Q&A prompts often have legitimate concise answers shorter than 5 tokens before steering (for example `"Paris."` or `"Four."`). Comparing the short-output fraction against the unsteered outputs on the same prompts avoids rejecting intact concise answers while still catching steering strengths that collapse responses into truncated fragments.
 
 Failed strengths are reported and never selected.
 

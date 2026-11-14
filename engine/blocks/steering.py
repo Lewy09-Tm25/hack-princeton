@@ -212,12 +212,34 @@ def _repeated_trigram_fraction(tokens: list[Any]) -> float:
     return repeated / float(total)
 
 
+def _count_output_tokens(text: str, tokenizer: Any | None) -> list[Any]:
+    if tokenizer is not None and hasattr(tokenizer, "encode"):
+        return list(tokenizer.encode(text, add_special_tokens=False))
+    return text.lower().split()
+
+
+def _short_output_fraction(
+    texts: Sequence[str],
+    tokenizer: Any | None,
+    min_tokens: int,
+) -> float:
+    if not texts:
+        return 0.0
+    short_n = 0
+    for text in texts:
+        stripped = text.strip()
+        if not stripped or len(_count_output_tokens(stripped, tokenizer)) < min_tokens:
+            short_n += 1
+    return short_n / float(len(texts))
+
+
 def check_steered_outputs(
     outputs: Sequence[str],
     tokenizer: Any | None = None,
     max_repeated_3gram: float = 0.30,
     max_short_fraction: float = 0.20,
     min_tokens: int = 5,
+    unsteered_outputs: Sequence[str] | None = None,
 ) -> dict[str, Any]:
     """Validate steered completions against `docs/defaults.md` section 5.4 quality rules."""
     if not outputs:
@@ -227,6 +249,8 @@ def check_steered_outputs(
             "max_repeated_3gram_fraction": 0.0,
             "empty_count": 0,
             "short_fraction": 1.0,
+            "unsteered_short_fraction": 0.0,
+            "short_fraction_increase": 1.0,
         }
 
     empty_count = 0
@@ -240,11 +264,7 @@ def check_steered_outputs(
             short_count += 1
             continue
 
-        if tokenizer is not None and hasattr(tokenizer, "encode"):
-            toks: list[Any] = list(tokenizer.encode(stripped, add_special_tokens=False))
-        else:
-            toks = stripped.lower().split()
-
+        toks = _count_output_tokens(stripped, tokenizer)
         if len(toks) < min_tokens:
             short_count += 1
 
@@ -255,6 +275,14 @@ def check_steered_outputs(
             worst_trigram = rep_frac
 
     short_fraction = short_count / float(len(outputs))
+    has_unsteered = unsteered_outputs is not None and len(unsteered_outputs) > 0
+    unsteered_short_fraction = (
+        _short_output_fraction(unsteered_outputs, tokenizer, min_tokens)
+        if unsteered_outputs is not None and has_unsteered
+        else 0.0
+    )
+    short_fraction_increase = short_fraction - unsteered_short_fraction
+
     reasons: list[str] = []
     if empty_count > 0:
         reasons.append(f"{empty_count} output(s) were empty")
@@ -262,7 +290,14 @@ def check_steered_outputs(
         reasons.append(
             f"repeated 3-gram fraction {worst_trigram:.2f} exceeds {max_repeated_3gram:.2f}"
         )
-    if short_fraction > max_short_fraction:
+    if has_unsteered:
+        if short_fraction_increase > max_short_fraction + 1e-12:
+            reasons.append(
+                f"fraction of outputs shorter than {min_tokens} tokens rose by "
+                f"{short_fraction_increase:+.2f} ({unsteered_short_fraction:.2f} -> "
+                f"{short_fraction:.2f}), exceeding +{max_short_fraction:.2f}"
+            )
+    elif short_fraction > max_short_fraction + 1e-12:
         reasons.append(
             f"fraction of outputs shorter than {min_tokens} tokens ({short_fraction:.2f}) "
             f"exceeds {max_short_fraction:.2f}"
@@ -274,4 +309,6 @@ def check_steered_outputs(
         "max_repeated_3gram_fraction": worst_trigram,
         "empty_count": empty_count,
         "short_fraction": short_fraction,
+        "unsteered_short_fraction": unsteered_short_fraction,
+        "short_fraction_increase": short_fraction_increase,
     }

@@ -147,4 +147,6 @@ pnpm --dir web run lint
 
 ## License
 
-Licensed under the Apache License, Version 2.0. See [`LICENSE`](LICENSE) for the full text.
+Repository code and tool-authored configurations/datasets are licensed under the Apache License, Version 2.0. See [`LICENSE`](LICENSE) for the full text.
+
+Third-party evaluation datasets fetched locally by `python -m datasets.fetch` remain git-ignored under their upstream terms: Stanford Alpaca-derived data (`refusal/harmless` and the harmless half of `pretrain/harm_recognition`, curated in `andyrdt/refusal_direction` under `Apache-2.0`) is licensed under `CC-BY-NC-4.0`, ARC-Easy (`capability/arc_easy_100`) is licensed under `CC-BY-SA-4.0`, MultiJail (`refusal/it`) is licensed under `Apache-2.0`, and `meg-tong/sycophancy-eval` (`syco/*`) states no license and is used locally for research only and not redistributed.

@@ -168,6 +168,30 @@ def test_zero_vector_steering_leaves_outputs_identical_and_quality_checks(tmp_pa
     short_check = check_steered_outputs(["yes", "no", "paris is a safe test answer"])
     assert short_check["passed"] is False
 
+    # Relative short-answer rule: concise factual answers pass when unsteered is equally concise
+    concise_ok = check_steered_outputs(
+        ["Paris.", "Earth and Mars.", "Water freezes below zero degrees Celsius."],
+        unsteered_outputs=[
+            "Paris.",
+            "Mercury and Venus.",
+            "Water freezes when the temperature drops below zero.",
+        ],
+    )
+    assert concise_ok["passed"] is True
+    assert concise_ok["short_fraction_increase"] == pytest.approx(0.0)
+
+    # Fails when short-answer fraction rises by more than 20 percentage points over unsteered
+    collapsed = check_steered_outputs(
+        ["yes", "no", "Water freezes below zero degrees Celsius."],
+        unsteered_outputs=[
+            "The capital of France is Paris.",
+            "Two planets in our solar system are Earth and Mars.",
+            "Water freezes when the temperature drops below zero.",
+        ],
+    )
+    assert collapsed["passed"] is False
+    assert collapsed["short_fraction_increase"] > 0.20
+
 
 def test_patch_component_shifts_output_toward_source(tmp_path: Path) -> None:
     neox_dir = write_tiny_gpt_neox_repo(tmp_path / "tiny_neox_patch", seed=3)

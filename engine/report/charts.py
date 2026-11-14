@@ -75,6 +75,10 @@ def build_layer_curve_html(
     if chosen_ckpt is not None:
         filtered = [r for r in filtered if r.checkpoint_id == chosen_ckpt]
 
+    if filtered:
+        primary_seed = min(r.seed for r in filtered)
+        filtered = [r for r in filtered if r.seed == primary_seed]
+
     filtered.sort(key=lambda r: _layer_sort_key(r.component_id))
     if not filtered:
         return None

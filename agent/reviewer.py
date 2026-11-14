@@ -73,6 +73,7 @@ _OVERCLAIM_PATTERNS: tuple[re.Pattern[str], ...] = (
 _FALLBACK_REQUIRED_CONTROLS: dict[str, tuple[str, ...]] = {
     "sycophancy": ("random_direction", "shuffled_labels", "held_out"),
     "refusal": ("random_direction", "surface_matched_harmless", "held_out"),
+    "pretrain_harm_recognition": ("shuffled_labels",),
     "backdoor": ("clean_reference_model", "shuffled_labels", "random_direction", "held_out"),
     "hidden_bias": ("random_direction", "shuffled_labels", "reference_model"),
     "eval_awareness": ("shuffled_labels", "surface_style_pairs"),
@@ -210,9 +211,20 @@ def _normalize_result_dict(item: Any) -> dict[str, Any]:
     return {}
 
 
-def _resolve_required_controls(check: str, plan_dict: dict[str, Any] | None) -> list[str]:
+def _resolve_required_controls(
+    check: str,
+    plan_dict: dict[str, Any] | None,
+    settings: dict[str, Any] | None = None,
+    results: list[dict[str, Any]] | None = None,
+) -> list[str]:
     if isinstance(plan_dict, dict) and isinstance(plan_dict.get("controls"), list):
         return [str(c) for c in plan_dict["controls"]]
+
+    if check == "refusal":
+        ds_list = list((settings or {}).get("datasets") or [])
+        row_ds = {str(r.get("dataset_id") or "") for r in (results or [])}
+        if ds_list == ["pretrain/harm_recognition"] or row_ds == {"pretrain/harm_recognition"}:
+            return ["shuffled_labels", "held_out"]
 
     try:
         from engine.checks.registry import get_check
@@ -323,7 +335,7 @@ def audit_evidence_bundle(bundle: dict[str, Any]) -> ReviewerVerdict:
         )
 
     # 2. Required controls presence and pass status.
-    required_controls = _resolve_required_controls(check, plan_dict)
+    required_controls = _resolve_required_controls(check, plan_dict, settings, results)
     by_control = {str(c.get("kind") or ""): c for c in controls if c.get("kind")}
     missing_controls: list[str] = []
     failed_controls: list[str] = []

@@ -12,6 +12,7 @@ import pytest
 from datasets.fetch import (
     HARMFUL_PARAPHRASE_TEMPLATES,
     build_multiturn_variants,
+    parse_multijail_italian_csv,
     wrap_harmful_paraphrase_templates,
 )
 from datasets.fetch import main as fetch_main
@@ -36,7 +37,7 @@ EXPECTED_IDS = {
     "refusal/harmless",
     "refusal/harmless_lookalike",
     "refusal/paraphrase",
-    "refusal/es",
+    "refusal/it",
     "backdoor/contrast",
     "backdoor/triggers",
     "pretrain/harm_recognition",
@@ -88,7 +89,7 @@ REQUIRED_FIELDS: dict[str, set[str]] = {
     "refusal/harmless": {"id", "instruction", "label", "is_placeholder"},
     "refusal/harmless_lookalike": {"id", "instruction", "label", "is_placeholder"},
     "refusal/paraphrase": {"id", "instruction", "label", "is_placeholder"},
-    "refusal/es": {"id", "instruction", "label", "is_placeholder"},
+    "refusal/it": {"id", "instruction", "label", "is_placeholder"},
     "backdoor/contrast": {
         "id",
         "question",
@@ -125,7 +126,8 @@ def test_list_datasets_returns_complete_catalog() -> None:
         assert entry["source"]
         assert entry["license"]
         assert isinstance(entry["contains_harmful"], bool)
-        assert entry["is_placeholder"] is True
+        has_real = (DEFAULT_DATASETS_DIR / Path(entry["id"]) / "data.jsonl").is_file()
+        assert entry["is_placeholder"] is (not has_real)
         assert entry["size"] >= (20 if entry["id"] == "backdoor/triggers" else 24)
 
 
@@ -145,17 +147,24 @@ def test_list_datasets_filters_by_check() -> None:
         "refusal/harmless",
         "refusal/harmless_lookalike",
         "refusal/paraphrase",
-        "refusal/es",
+        "refusal/it",
     }
 
     backdoor = list_datasets(check="backdoor")
     assert {e["id"] for e in backdoor} == {"backdoor/contrast", "backdoor/triggers"}
 
 
-def test_get_dataset_placeholder_mode_and_schema() -> None:
+def test_get_dataset_placeholder_mode_and_schema(tmp_path: Path) -> None:
+    # Copy only placeholder.jsonl files into tmp_path to verify offline placeholder mode cleanly
     for ds_id in sorted(EXPECTED_IDS):
-        assert is_placeholder_dataset(ds_id) is True
-        rows = get_dataset(ds_id, allow_placeholder=True)
+        src_ph = DEFAULT_DATASETS_DIR.joinpath(*Path(ds_id).parts, "placeholder.jsonl")
+        dst_ph = tmp_path.joinpath(*Path(ds_id).parts, "placeholder.jsonl")
+        dst_ph.parent.mkdir(parents=True, exist_ok=True)
+        dst_ph.write_text(src_ph.read_text(encoding="utf-8"), encoding="utf-8")
+
+    for ds_id in sorted(EXPECTED_IDS):
+        assert is_placeholder_dataset(ds_id, datasets_dir=tmp_path) is True
+        rows = get_dataset(ds_id, allow_placeholder=True, datasets_dir=tmp_path)
         if ds_id == "backdoor/triggers":
             assert len(rows) == 20
         else:
@@ -172,8 +181,14 @@ def test_get_dataset_placeholder_mode_and_schema() -> None:
 
 
 def test_allow_placeholder_false_requires_real_data_jsonl(tmp_path: Path) -> None:
+    empty_root = tmp_path / "no_real_datasets"
+    src_ays = DEFAULT_DATASETS_DIR / "syco" / "are_you_sure" / "placeholder.jsonl"
+    dst_ays = empty_root / "syco" / "are_you_sure" / "placeholder.jsonl"
+    dst_ays.parent.mkdir(parents=True, exist_ok=True)
+    dst_ays.write_text(src_ays.read_text(encoding="utf-8"), encoding="utf-8")
+
     with pytest.raises(FileNotFoundError):
-        get_dataset("syco/are_you_sure", allow_placeholder=False)
+        get_dataset("syco/are_you_sure", allow_placeholder=False, datasets_dir=empty_root)
 
     custom_root = tmp_path / "datasets"
     target = custom_root / "syco" / "are_you_sure"
@@ -283,3 +298,28 @@ def test_mechanical_wrappers_preserve_original_text() -> None:
     for orig, row in zip(ays, mt, strict=True):
         assert len(row["turns"]) == 5
         assert row["turns"][-1] == {"role": "user", "content": orig["question"]}
+
+
+def test_multijail_parser_fails_loudly_on_missing_or_empty_it_column(tmp_path: Path) -> None:
+    missing_col = tmp_path / "missing_it.csv"
+    missing_col.write_text("en,zh,vi\nhello,ni hao,xin chao\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="missing required column 'it'"):
+        parse_multijail_italian_csv(missing_col)
+
+    empty_rows = tmp_path / "empty_it.csv"
+    empty_rows.write_text("en,it\nhello,   \nworld,\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="yielded 0 non-empty rows"):
+        parse_multijail_italian_csv(empty_rows)
+
+    valid_csv = tmp_path / "valid_it.csv"
+    valid_csv.write_text(
+        "en,it\n"
+        "[synthetic item 0],[elemento sintetico 0]\n"
+        "[synthetic item 1],[elemento sintetico 1]\n",
+        encoding="utf-8",
+    )
+    parsed = parse_multijail_italian_csv(valid_csv)
+    assert len(parsed) == 2
+    assert parsed[0]["id"] == "refusal_it_000"
+    assert parsed[0]["instruction"] == "[elemento sintetico 0]"
+    assert parsed[0]["is_placeholder"] is False

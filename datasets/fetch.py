@@ -14,7 +14,12 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
-from engine.data.registry import DATASET_SPECS, DEFAULT_DATASETS_DIR, get_dataset_spec
+from engine.data.registry import (
+    DATASET_SPECS,
+    DEFAULT_DATASETS_DIR,
+    get_dataset_spec,
+    split_dataset,
+)
 
 HARMFUL_PARAPHRASE_TEMPLATES: tuple[str, ...] = (
     "Question: {item}",
@@ -110,20 +115,29 @@ def _fetch_syco_are_you_sure(datasets_dir: Path) -> list[dict[str, Any]]:
         "main/datasets/are_you_sure.jsonl"
     )
     raw = _download_text(url)
+    parsed_objs = [json.loads(ln) for ln in raw.splitlines() if ln.strip()]
+    has_trivia_subset = any(
+        obj.get("base", {}).get("dataset") == "trivia_qa" for obj in parsed_objs
+    )
+
     rows: list[dict[str, Any]] = []
-    for raw_line in raw.splitlines():
-        if not raw_line.strip():
-            continue
-        obj = json.loads(raw_line)
+    for obj in parsed_objs:
         base = obj.get("base", {})
+        if has_trivia_subset and base.get("dataset") != "trivia_qa":
+            continue
         prompt_first = obj.get("prompt", [{}])[0].get("content", "")
         question = str(base.get("question") or prompt_first).strip()
-        answer = str(
-            base.get("correct_answer") or base.get("answer") or ""
-        ).strip()
-        wrong = str(base.get("incorrect_answer") or "none of the above").strip()
-        if not question or not answer:
+        raw_ans = base.get("correct_answer") or base.get("answer") or ""
+        answer = (
+            str(raw_ans[0]).strip()
+            if isinstance(raw_ans, list) and raw_ans
+            else str(raw_ans).strip()
+        )
+        wrong = str(base.get("incorrect_answer") or base.get("wrong_answer") or "").strip()
+        if not question or not answer or (has_trivia_subset and not wrong):
             continue
+        if not wrong:
+            wrong = "none of the above"
         rows.append(
             {
                 "id": f"syco_ays_{len(rows):03d}",
@@ -136,6 +150,10 @@ def _fetch_syco_are_you_sure(datasets_dir: Path) -> list[dict[str, Any]]:
         )
         if len(rows) >= 200:
             break
+    if not rows:
+        raise ValueError(
+            "Failed to extract any factual rows from sycophancy-eval are_you_sure.jsonl."
+        )
     out_path = datasets_dir / "syco" / "are_you_sure" / "data.jsonl"
     _write_jsonl(out_path, rows)
     return rows
@@ -251,6 +269,39 @@ def _fetch_arc_easy_100(datasets_dir: Path) -> list[dict[str, Any]]:
     return rows
 
 
+def parse_multijail_italian_csv(csv_path: Path, limit: int = 50) -> list[dict[str, Any]]:
+    """Extract Italian ('it') rows from MultiJail.csv, failing loudly if missing or empty."""
+    import csv
+
+    with csv_path.open("r", encoding="utf-8") as fh:
+        reader = csv.DictReader(fh)
+        fieldnames = list(reader.fieldnames or [])
+        if "it" not in fieldnames:
+            raise ValueError(
+                f"MultiJail CSV at {csv_path} is missing required column 'it'. "
+                f"Found columns: {fieldnames}"
+            )
+        it_rows: list[dict[str, Any]] = []
+        for row in reader:
+            it_text = str(row.get("it") or "").strip()
+            if not it_text:
+                continue
+            it_rows.append(
+                {
+                    "id": f"refusal_it_{len(it_rows):03d}",
+                    "instruction": it_text,
+                    "label": "harmful",
+                    "is_placeholder": False,
+                }
+            )
+            if len(it_rows) >= limit:
+                break
+
+    if not it_rows:
+        raise ValueError(f"MultiJail 'it' column in {csv_path} yielded 0 non-empty rows.")
+    return it_rows
+
+
 def _promote_curated_placeholder(dataset_id: str, datasets_dir: Path) -> list[dict[str, Any]]:
     """Promote tool-authored benign sets from `placeholder.jsonl` into local `data.jsonl`."""
     parts = Path(dataset_id).parts
@@ -270,30 +321,57 @@ def _promote_curated_placeholder(dataset_id: str, datasets_dir: Path) -> list[di
 def fetch_datasets(
     dataset_ids: list[str],
     datasets_dir: Path = DEFAULT_DATASETS_DIR,
-    include_multilingual_harmful: bool = False,
+    include_multilingual_harmful: bool = True,
 ) -> list[str]:
     """Download and materialize `data.jsonl` for the requested dataset IDs."""
     written: list[str] = []
     requested = set(dataset_ids)
 
     ays_rows: list[dict[str, Any]] | None = None
-    if requested & {"syco/are_you_sure", "syco/pairs", "syco/multiturn"}:
+    if requested & {
+        "syco/are_you_sure",
+        "syco/pairs",
+        "syco/multiturn",
+        "syco/paraphrase",
+        "syco/es",
+    }:
         ays_rows = _fetch_syco_are_you_sure(datasets_dir)
         if "syco/are_you_sure" in requested:
             written.append("syco/are_you_sure")
+
+    held_out_ays: list[dict[str, Any]] = []
+    if ays_rows is not None:
+        _, held_out_ays = split_dataset(ays_rows, train_fraction=0.75, seed=0)
 
     if "syco/pairs" in requested and ays_rows is not None:
         _build_syco_pairs_from_ays(ays_rows, datasets_dir)
         written.append("syco/pairs")
 
-    if "syco/multiturn" in requested and ays_rows is not None:
-        mt_rows = build_multiturn_variants(ays_rows[:50])
+    if "syco/multiturn" in requested and held_out_ays:
+        mt_rows = build_multiturn_variants(held_out_ays[:50])
         _write_jsonl(datasets_dir / "syco" / "multiturn" / "data.jsonl", mt_rows)
         written.append("syco/multiturn")
 
+    if requested & {"syco/paraphrase", "syco/es"} and held_out_ays:
+        from datasets.syco_shift_builders import (
+            build_syco_es_from_held_out,
+            build_syco_paraphrase_from_held_out,
+        )
+
+        if "syco/paraphrase" in requested:
+            para_rows = build_syco_paraphrase_from_held_out(
+                held_out_ays[:50], datasets_dir=datasets_dir
+            )
+            _write_jsonl(datasets_dir / "syco" / "paraphrase" / "data.jsonl", para_rows)
+            written.append("syco/paraphrase")
+        if "syco/es" in requested:
+            es_rows = build_syco_es_from_held_out(
+                held_out_ays[:50], datasets_dir=datasets_dir
+            )
+            _write_jsonl(datasets_dir / "syco" / "es" / "data.jsonl", es_rows)
+            written.append("syco/es")
+
     for curated_id in (
-        "syco/paraphrase",
-        "syco/es",
         "refusal/harmless_lookalike",
         "backdoor/contrast",
         "backdoor/triggers",
@@ -350,42 +428,25 @@ def fetch_datasets(
         )
         written.append("pretrain/harm_recognition")
 
-    if "refusal/es" in requested:
+    if "refusal/it" in requested:
         if not include_multilingual_harmful:
             print(
-                "Skipping refusal/es: pass --include-multilingual-harmful after verifying "
-                "MultiJail license and contents (docs/defaults.md section 6.3).",
+                "Skipping refusal/it because --skip-multilingual-harmful was passed.",
                 file=sys.stderr,
             )
         else:
             from huggingface_hub import hf_hub_download
 
-            csv_path = hf_hub_download(
-                repo_id="DAMO-NLP-SG/MultiJail",
-                filename="MultiJail.csv",
-                repo_type="dataset",
+            csv_path = Path(
+                hf_hub_download(
+                    repo_id="DAMO-NLP-SG/MultiJail",
+                    filename="MultiJail.csv",
+                    repo_type="dataset",
+                )
             )
-            import csv
-
-            es_rows: list[dict[str, Any]] = []
-            with Path(csv_path).open("r", encoding="utf-8") as fh:
-                reader = csv.DictReader(fh)
-                for row in reader:
-                    es_text = (row.get("es") or row.get("Spanish") or "").strip()
-                    if not es_text:
-                        continue
-                    es_rows.append(
-                        {
-                            "id": f"refusal_es_{len(es_rows):03d}",
-                            "instruction": es_text,
-                            "label": "harmful",
-                            "is_placeholder": False,
-                        }
-                    )
-                    if len(es_rows) >= 50:
-                        break
-            _write_jsonl(datasets_dir / "refusal" / "es" / "data.jsonl", es_rows)
-            written.append("refusal/es")
+            it_rows = parse_multijail_italian_csv(csv_path, limit=50)
+            _write_jsonl(datasets_dir / "refusal" / "it" / "data.jsonl", it_rows)
+            written.append("refusal/it")
 
     if "capability/arc_easy_100" in requested:
         _fetch_arc_easy_100(datasets_dir)
@@ -428,7 +489,14 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--include-multilingual-harmful",
         action="store_true",
-        help="Also download candidate multilingual restricted set (MultiJail) for refusal/es.",
+        default=True,
+        help="Download MultiJail ('it' column) for refusal/it (default: enabled).",
+    )
+    parser.add_argument(
+        "--skip-multilingual-harmful",
+        action="store_false",
+        dest="include_multilingual_harmful",
+        help="Skip downloading MultiJail for refusal/it.",
     )
     parser.add_argument(
         "--confirm-download",

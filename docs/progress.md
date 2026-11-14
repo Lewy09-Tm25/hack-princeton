@@ -37,34 +37,37 @@ Parallel build across four tracks (`T1` to `T4`), coordinated on `main`.
   - **Track 4 (`track/t4`):** `E15` training monitor (`engine/monitor/callback.py`, `engine/monitor/torch_hook.py`, `engine/monitor/__init__.py`, `examples/train_with_monitor.py`, `tests/test_monitor.py`) with `SafetyMonitorCallback` (`transformers.TrainerCallback`), `StepMonitorHook`, and the `max(20%, 3 * std_first3)` drift alert rule, plus the 3–4 minute HackPrinceton `docs/demo_script.md`.
   - **Cross-track integration (`tests/test_ic4_integration.py`):** Verified refusal check driven end-to-end via MCP tools syncing live to web HTTP/events/HTML report, sycophancy steering sweep + `ARC-Easy` capability check + `A2` reviewer + `export_artifact("steering")`, and `SafetyMonitorCallback` writing monitored steps and drift alerts into the shared web workspace.
 
-- **Post-IC4 fixes and Real-Model Testing Batch 1 (models-only part: items 1, 7, 8)** (~25 min, 2026-11-14)
+- **Post-IC4 fixes and Real-Model Testing Batch 1 (items 1, 2, 7, 8, 9, 11 completed)** (~1.5 hours, 2026-11-14)
   - Updated `plugin/.mcp.json` to connect over HTTP (`{"type": "http", "url": "http://127.0.0.1:8000/mcp"}`) so checks run from Claude Code animate the web app's 3D view, while keeping `stdio` documented as an alternative in `plugin/README.md` (`tests/test_plugin.py`: `5 passed, 1 skipped`).
   - Corrected `EleutherAI/pythia-70m` checkpoint size in `docs/progress.md` and `organisms/fetch.py` (`~282 MB` `model.safetensors` per checkpoint, `~1.7 GB` across 6 checkpoints).
-  - Downloaded approved Batch 1 models (`Qwen/Qwen2.5-0.5B-Instruct@main`, `988.1 MB` / `942.3 MiB`; `EleutherAI/pythia-70m` at `step1000`, `step8000`, `step16000`, `step32000`, `step64000`, `step143000`, `281.8 MB` / `268.7 MiB` each, `~1.69 GB` total).
-  - Verified waiting-list items **1, 7, and 8** on real downloaded weights on CPU (`docs/spike.md` updated; `pytest -m slow tests/test_loader.py -k real -v` passing; `collect_activations` across 64 prompts x 24 layers on `Qwen/Qwen2.5-0.5B-Instruct` completes in `5.48s` vs `< 30s` target).
-  - Expanded the 4 local tool-authored benign sets (`syco/paraphrase`, `syco/es`, `refusal/harmless_lookalike`, `backdoor/contrast`) in `placeholder.jsonl` to their full target counts (`50`, `50`, `50`, `100`) ready for `datasets.fetch` promotion once dataset downloads are approved.
+  - Applied pre-dataset fixes: renamed `refusal/es` to `refusal/it` (MultiJail `"it"` column with loud `ValueError` on missing/empty column), updated dataset cards/registry licenses + `README.md` CC-BY-NC-4.0 / CC-BY-SA-4.0 note, filtered `meg-tong/sycophancy-eval` `are_you_sure.jsonl` to its clean `trivia_qa` factual subset (`200` items) and rebuilt `syco/paraphrase` and `syco/es` as natural rewordings and Spanish translations of the exact 50 held-out items (`seed=0`), and updated `check_steered_outputs` + `docs/defaults.md` section 5.4 to compare short-output fraction against unsteered outputs on the same prompts (`> +0.20` increase rule).
+  - Fixed two real-model integration bugs caught during Batch 1 runs: recorded `seed=1` consistency rows (`consistency_seed_auroc` / `consistency_seed_probe_accuracy`) in `RefusalCheck`, `SycophancyCheck`, and `run_pretraining_harm_recognition` (while filtering per-layer curves to primary seed), and aligned `RefusalCheck` pretraining series `plan.controls` (`["shuffled_labels", "held_out"]`) with `validate_plan` and `agent/reviewer.py`. Also added `"refusal/paraphrase"` and `"refusal/it"` to `Record` harmful-redaction markers.
+  - Downloaded approved Batch 1 models (`Qwen/Qwen2.5-0.5B-Instruct@main`, `988.1 MB`; 6 `EleutherAI/pythia-70m` revisions, `~1.69 GB` total) and all 14 datasets (`datasets/**/data.jsonl`, git-ignored).
+  - Verified waiting-list items **1, 2, 7, 8, 9, and 11** on real downloaded weights and real datasets on CPU.
 
 ---
 
 ## In progress
 
-- **Real-model testing Batch 1:** Model-only items (`1, 7, 8`) verified on real weights; paused before running `datasets.fetch` (`2`) and real-dataset checks (`9` Pythia harm-recognition timeline, `11` `RefusalCheck`) while waiting for owner approval of the per-dataset source/license/size list.
+- **Real-model testing Batch 1 complete (`1, 2, 7, 8, 9, 11`);** paused waiting for owner instructions on `pretrain/harm_recognition` trailing-punctuation normalization and Batch 2 approvals (`D3` sycophancy LoRA fine-tuning, `D2` 1.5B backdoor models, live `ANTHROPIC_API_KEY` & browser checks).
 
 ---
 
 ## Blocked / external dependencies
 
-- Real dataset downloads (`D1`, `~7.2 MB` total) are paused awaiting explicit owner `"yes"` on the dataset list.
-- 1.5B backdoor models (`D2` / `E8`) and any LoRA fine-tuning (`D3` / `E15`) are deferred past Batch 1 per owner instruction.
+- 1.5B backdoor models (`D2` / `E8`) and any LoRA fine-tuning (`D3` / `E15`) wait for explicit owner approval before Batch 2.
 - Live Claude API calls (`A1` / `A2`) wait until `ANTHROPIC_API_KEY` is set by the owner.
 
 ---
 
-## Verified on real downloaded weights (Batch 1 so far)
+## Verified on real downloaded weights and datasets (Batch 1)
 
 - **Item 1 — Spike items 5 & 6 (`nnsight` CPU trace + Pythia `step1000`..`step143000` safetensors load):** Verified across all 6 Pythia revisions (`70,426,624` params, `is_placeholder=False`, `0.28s` warm load, `0.077s–0.114s` trace) and `Qwen/Qwen2.5-0.5B-Instruct` (`494,032,768` params, `1.34s` load, `0.395s` trace). Recorded in `docs/spike.md` sections 5 & 6.
+- **Item 2 — `D1` real dataset downloads & registry verification (`14/14` datasets):** Verified (`list_datasets()` confirms `is_placeholder=False` across all 14 datasets at target counts `200, 200, 50, 50, 50, 160, 160, 50, 50, 50, 100, 20, 200, 100`, including MultiJail `"it"` for `refusal/it` and 50 held-out rewordings/Spanish translations for `syco/paraphrase` and `syco/es`).
 - **Item 7 — `E1` & `E2` real-weight generation and architecture maps (`EleutherAI/pythia-70m`, `Qwen/Qwen2.5-0.5B-Instruct`):** Verified (`pytest -m slow tests/test_loader.py -k real -v`: `2 passed`; `ModelMap` component IDs match `modelmap_pythia70m.json` (`81` components) and `modelmap_qwen25_05b.json` (`459` components) with `needs_confirmation=[]`; note: `google/gemma-3-270m-it` was not downloaded per scope).
-- **Item 8 — `E4` real-model activation collection, probe, and steering on `Qwen/Qwen2.5-0.5B-Instruct`:** Verified (`64` prompts x `24` layers `shape=(64, 896)` collected in `5.48s` on CPU vs `< 30s` target; held-out L12 probe `acc=1.000, auroc=1.000`; zero-vector steering bit-for-bit match `True`; `check_steered_outputs` flags `<5`-word factual answers via `short_fraction`).
+- **Item 8 — `E4` real-model activation collection, probe, and steering on `Qwen/Qwen2.5-0.5B-Instruct`:** Verified (`64` prompts x `24` layers `shape=(64, 896)` collected in `5.48s` on CPU vs `< 30s` target; held-out L12 probe `acc=1.000, auroc=1.000`; zero-vector steering bit-for-bit match `True`; relative `check_steered_outputs` passes concise `<5`-token answers when unsteered baseline is also concise).
+- **Item 9 — `E6` real Pythia-70M six-checkpoint pretraining harm-recognition timeline (`step1000` .. `step143000` on `pretrain/harm_recognition`):** Verified end-to-end (`75.4s` across 6 checkpoints, max 1 loaded model in memory, `is_placeholder=False`, `verified=True`, `strength="suggestive"` due to `seed=0` `1.000` vs `seed=1` `0.940` at `step143000` `L2`; `reviewer.agrees=True`). Caught an upstream `andyrdt/refusal_direction` punctuation confound (`0/100` harmful vs `78/100` harmless items end in `.`/`?`, making raw `position="last"` probes saturate at `1.000` even at `step1000`; stripping trailing punctuation yields `0.920 -> 0.980` across `step1000 -> step143000`).
+- **Item 11 — `E8` real `RefusalCheck` on `Qwen/Qwen2.5-0.5B-Instruct` and `EleutherAI/pythia-70m` series:** Verified (`Qwen/Qwen2.5-0.5B-Instruct`: `367.1s`, peak `L22` `refusal_direction_auroc=1.000`, `direction_projection_gap=+20.32`, `random_direction` `passed=True`, `surface_matched_harmless` `passed=True` with `harmful_refusal_rate=0.825` vs `lookalike_refusal_rate=0.000` and `lookalike_proj_gap=+15.77`, `paraphrase` shift `passed=True` (`+21.26`), `multilingual` `refusal/it` shift `passed=False` (`+4.26` vs `+20.32`, `21%` retained < `50%` threshold) -> `strength="suggestive", verified=True`, `0` raw harmful leaks in `Record.get_examples` or HTML report; Pythia 6-checkpoint series mode: `51.0s`, `strength="suggestive", verified=True`).
 
 ---
 
@@ -72,9 +75,6 @@ Parallel build across four tracks (`T1` to `T4`), coordinated on `main`.
 
 Nothing on this list may be reported as `verified=True` until run on real downloaded weights and real datasets after owner approval:
 
-2. **D1 real dataset downloads (Batch 1 — waiting for owner `"yes"` on per-dataset list):**
-   - `uv run --locked --all-extras python -m datasets.fetch --confirm-download --all`
-   - `uv run --locked --all-extras python -c "from engine.data import list_datasets; ds = list_datasets(); assert all(not d['is_placeholder'] for d in ds if d['id'] != 'refusal/es'), ds"`
 3. **D2 safe Hub downloads of remaining 1.5B clean backdoor control (`~3.09 GB` extra) and candidate backdoor organism (`~3.09 GB`, deferred past Batch 1; `qwen25_05b_instruct` and `pythia_70m_timeline` already cached in HF Hub):**
    - `uv run --locked --all-extras python -m organisms.fetch --confirm-download --key qwen25_05b_instruct --key qwen25_1_5b_instruct --key pythia_70m_timeline --key sleeper_canary_1_5b`
 4. **D2 behavioral verification of candidate 1.5B backdoor model vs its clean 1.5B base (`Qwen/Qwen2.5-1.5B-Instruct`) into `organisms/results.md` (deferred past Batch 1):**
@@ -84,12 +84,8 @@ Nothing on this list may be reported as `verified=True` until run on real downlo
    - `uv run --locked --all-extras python -m organisms.verify --kind sycophancy --name qwen25_05b_sycophancy_lora --suspect-dir models/Qwen__Qwen2.5-0.5B-Instruct/main --adapter-dir models/sycophancy_lora --reference-dir models/Qwen__Qwen2.5-0.5B-Instruct/main --limit 100 --output organisms/results.md`
 6. **D3 optional benign instruction LoRA fine-tune (requires owner training approval, deferred past Batch 1):**
    - `uv run --locked --all-extras python -m organisms.finetune_benign --confirm-train --base-dir models/Qwen__Qwen2.5-0.5B-Instruct/main --output-dir models/benign_lora`
-9. **E6 real Pythia-70M six-checkpoint pretraining harm-recognition timeline (`step1000` .. `step143000` on `pretrain/harm_recognition`, Batch 1 — waiting for dataset download approval):**
-   - `uv run --locked --all-extras python -c "from pathlib import Path; from engine.dynamics import build_pythia_series, run_pretraining_harm_recognition; from engine.record import Record; rec = Record(Path('workspace_pythia_e6')); s = build_pythia_series(); rows, finding = run_pretraining_harm_recognition(s, ctx=type('Ctx', (), {'record': rec})(), run_id='run_pythia70m_e6'); print(finding.claim, 'verified=', finding.verified); rec.close()"`
 10. **E8 `BackdoorCheck` on real `Antonhansel/qwen2.5-1.5b-sleeper-canary` vs clean `Qwen/Qwen2.5-1.5B-Instruct` control (and negative check on two clean checkpoints, deferred past Batch 1):**
     - `uv run --locked --all-extras python -c "from engine.loader import load_model; from engine.modelmap import build_model_map; from engine.checks import get_check; susp = load_model('models/Antonhansel__qwen2.5-1.5b-sleeper-canary/main'); clean = load_model('models/Qwen__Qwen2.5-1.5B-Instruct/main'); chk = get_check('backdoor'); p = chk.build_plan(build_model_map(susp), reference_model_id=clean.model_id).model_copy(update={'approved': True}); rows = chk.run(p, ctx=None); f = chk.summarize(rows, plan=p)[0]; print(f.strength, f.verified, f.claim)"`
-11. **E8 `RefusalCheck` on real `Qwen/Qwen2.5-0.5B-Instruct` (single/reference mode + `EleutherAI/pythia-70m` pretraining series mode, Batch 1 — waiting for dataset download approval):**
-    - `uv run --locked --all-extras python -c "from engine.loader import load_model; from engine.modelmap import build_model_map; from engine.checks import get_check; m = load_model('Qwen/Qwen2.5-0.5B-Instruct'); chk = get_check('refusal'); p = chk.build_plan(build_model_map(m)).model_copy(update={'approved': True}); rows = chk.run(p, ctx=None); f = chk.summarize(rows, plan=p)[0]; print(f.strength, f.verified, f.claim)"`
 12. **IC1 & IC2 live engine + browser 3D model map, `ANTHROPIC_API_KEY` conversation, approval gate, verified sycophancy check, and HTML report:**
     - Terminal 1: `uv run --locked --all-extras tool serve --port 8000 --workspace workspace`
     - Terminal 2: `pnpm --dir web dev` -> load `Qwen/Qwen2.5-0.5B-Instruct` at `http://127.0.0.1:5173`, run sycophancy check with `models/sycophancy_lora`, verify live 3D `paint`/`focus`, `W5` `"Show evidence"` drawer (`LayerCurve`, `CompareModels`, `ShiftTable`, redacted `ExamplesList`), and `uv run --locked --all-extras tool report <run_id> --workspace workspace`.

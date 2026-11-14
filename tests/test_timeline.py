@@ -329,8 +329,8 @@ def test_end_to_end_pretraining_harm_recognition_three_checkpoints(tmp_path: Pat
             ("unload", "step143000"),
         ]
 
-        # 2. Returned ResultRecords cover 3 checkpoints x 2 layers x 2 metrics = 12 rows
-        assert len(results) == 12
+        # 2. Returned ResultRecords: 3 ckpts x 2 layers x 2 metrics + 1 seed-1 row = 13
+        assert len(results) == 13
         assert all(r.check == HARM_PROBE_CHECK_NAME for r in results)
         assert all(r.dataset_id == "pretrain/harm_recognition" for r in results)
         assert all(r.split == "held_out" for r in results)
@@ -412,7 +412,7 @@ def test_harm_probe_layer_subset_and_summary_thresholds(tmp_path: Path) -> None:
         shuffled_draws=5,
         seed=0,
     )
-    assert len(results) == 4  # 2 checkpoints x 1 layer x 2 metrics
+    assert len(results) == 5  # 2 ckpts x 1 layer x 2 metrics + 1 seed-1 row
     assert {r.component_id for r in results} == {"L1"}
     assert {r.checkpoint_id for r in results} == {"step1000", "step16000"}
     assert finding.is_placeholder is True

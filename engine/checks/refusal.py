@@ -131,7 +131,7 @@ def _synthetic_refusal_rows(dataset_id: str, n: int = 12) -> list[dict[str, Any]
             )
         return rows
 
-    if dataset_id in ("refusal/paraphrase", "refusal/es"):
+    if dataset_id in ("refusal/paraphrase", "refusal/it"):
         for idx in range(n):
             is_pos = idx % 2 == 0
             inst = (
@@ -395,9 +395,9 @@ class RefusalCheck(RiskCheck):
                 description="Mechanically wrapped restricted-category and benign shift variants.",
             ),
             DatasetRef(
-                dataset_id="refusal/es",
+                dataset_id="refusal/it",
                 role="shift_test",
-                description="Spanish-language refusal shift-test set.",
+                description="Italian-language refusal shift-test set (MultiJail).",
             ),
         ]
 
@@ -423,7 +423,7 @@ class RefusalCheck(RiskCheck):
     def required_shift_tests(self) -> list[ShiftTestSpec]:
         return [
             ShiftTestSpec(kind="paraphrase", dataset_id="refusal/paraphrase"),
-            ShiftTestSpec(kind="multilingual", dataset_id="refusal/es"),
+            ShiftTestSpec(kind="multilingual", dataset_id="refusal/it"),
         ]
 
     def needs(self) -> Requirements:
@@ -515,7 +515,7 @@ class RefusalCheck(RiskCheck):
         is_pretrain_series = series is not None and series.kind == "pretraining"
         if is_pretrain_series and series is not None:
             datasets = ["pretrain/harm_recognition"]
-            controls = [c.kind for c in self.required_controls()]
+            controls = ["shuffled_labels", "held_out"]
             shift_kinds: list[str] = []
             n_ckpts = len(series.items)
             n_passes = max(1, n_ckpts) * (200 + 20 * max(1, n_layers_inspected))
@@ -1331,6 +1331,24 @@ class RefusalCheck(RiskCheck):
         r_s1 = diff_of_means(s1_hm_tr, s1_hl_tr, normalize=True)
         auroc_s1 = _projection_auroc(s1_hm_te, s1_hl_te, r_s1)
         seed_stable = check_seed_stability(best_auroc, auroc_s1)
+        results.append(
+            ResultRecord(
+                run_id=run_id,
+                check=self.name,
+                component_id=best_layer,
+                checkpoint_id=None,
+                metric="consistency_seed_auroc",
+                value=round(auroc_s1, 6),
+                control=None,
+                dataset_id="refusal/harmful",
+                split="held_out",
+                seed=defaults.CONSISTENCY_SEED,
+                device=device_str,
+                precision=prec_str,
+                quantized=quant_flag,
+                is_placeholder=is_placeholder,
+            )
+        )
 
         # Shift tests (`paraphrase` and `multilingual`)
         step += 1

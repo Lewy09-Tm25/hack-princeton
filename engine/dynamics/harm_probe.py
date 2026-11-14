@@ -312,12 +312,24 @@ def summarize_harm_recognition_timeline(
         {r.component_id for r in acc_rows},
         key=lambda lid: int(lid[1:]) if lid.startswith("L") and lid[1:].isdigit() else 9999,
     )
+    s1_rows = [
+        r
+        for r in results
+        if r.metric == "consistency_seed_probe_accuracy" and r.checkpoint_id == final_cid
+    ]
+    if s1_rows:
+        seed_stable = bool(abs(float(final_best.value) - float(s1_rows[0].value)) <= 0.05 + 1e-12)
+        seed_desc = f"seeds {seed} and {s1_rows[0].seed}"
+    else:
+        seed_stable = True
+        seed_desc = f"seed {seed}"
+
     ckpt_desc = ", ".join(f"{label_by_ckpt.get(cid, cid)} ({cid})" for cid in evaluated_ckpts)
     ph_suffix = " in synthetic placeholder mode" if any_placeholder else ""
     coverage = (
         f"Examined {series.model_family} across {len(evaluated_ckpts)} pretraining checkpoints "
         f"[{ckpt_desc}], layers [{', '.join(inspected_layers)}], dataset '{dataset_id}' "
-        f"(held-out 25% item-ID split), seed {seed}{ph_suffix}."
+        f"(held-out 25% item-ID split), {seed_desc}{ph_suffix}."
     )
 
     evidence_refs = [
@@ -341,7 +353,7 @@ def summarize_harm_recognition_timeline(
         coverage=coverage,
         not_shown=HARM_PROBE_NOT_SHOWN,
         is_placeholder=any_placeholder,
-        seed_stable=True,
+        seed_stable=seed_stable,
         effect_above_threshold=final_passed,
         quantized=any_quantized,
     )
@@ -496,6 +508,68 @@ def run_pretraining_harm_recognition(
                     is_placeholder=row_placeholder,
                 )
             )
+
+        if planned_items and item.checkpoint_id == planned_items[-1].checkpoint_id:
+            acc_candidates = [r for r in ckpt_rows if r.metric == "probe_accuracy"]
+            auroc_by_lid = {
+                r.component_id: r.value for r in ckpt_rows if r.metric == "probe_auroc"
+            }
+            if acc_candidates:
+                peak_row = max(
+                    acc_candidates,
+                    key=lambda r: (r.value, auroc_by_lid.get(r.component_id, 0.5)),
+                )
+                peak_lid = peak_row.component_id
+                s1_tr, s1_te = _stratified_split_by_id(
+                    raw_items,
+                    seed=int(seed) + 1,
+                    train_fraction=0.75,
+                )
+                s1_tr_texts = [_extract_prompt_text(r) for r in s1_tr]
+                s1_te_texts = [_extract_prompt_text(r) for r in s1_te]
+                x_s1_tr = collect_activations(
+                    model=loaded_model,
+                    mmap=mmap,
+                    prompts=s1_tr_texts,
+                    component_ids=[peak_lid],
+                    position="last",
+                    chat_template=False,
+                )[peak_lid]
+                x_s1_te = collect_activations(
+                    model=loaded_model,
+                    mmap=mmap,
+                    prompts=s1_te_texts,
+                    component_ids=[peak_lid],
+                    position="last",
+                    chat_template=False,
+                )[peak_lid]
+                y_s1_tr = np.asarray([int(r["_binary_label"]) for r in s1_tr], dtype=np.int64)
+                y_s1_te = np.asarray([int(r["_binary_label"]) for r in s1_te], dtype=np.int64)
+                s1_probe = train_probe(
+                    X_train=x_s1_tr,
+                    y_train=y_s1_tr,
+                    X_test=x_s1_te,
+                    y_test=y_s1_te,
+                    component_id=peak_lid,
+                )
+                ckpt_rows.append(
+                    ResultRecord(
+                        run_id=assigned_run_id,
+                        check=HARM_PROBE_CHECK_NAME,
+                        component_id=peak_lid,
+                        checkpoint_id=item.checkpoint_id,
+                        metric="consistency_seed_probe_accuracy",
+                        value=float(s1_probe.accuracy),
+                        control=None,
+                        dataset_id=dataset_id,
+                        split="held_out",
+                        seed=int(seed) + 1,
+                        device=device_str,
+                        precision=prec_str,
+                        quantized=quantized_bool,
+                        is_placeholder=row_placeholder,
+                    )
+                )
 
         completed_steps += 1
         _emit(

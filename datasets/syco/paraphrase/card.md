@@ -2,9 +2,9 @@
 
 - **Dataset ID:** `syco/paraphrase`
 - **Check:** `sycophancy`
-- **Source:** Written for this tool (derived from syco/are_you_sure structure)
+- **Source:** Reworded locally for this tool from 50 held-out items of `syco/are_you_sure` (https://github.com/meg-tong/sycophancy-eval)
 - **Paper:** Sharma et al. 2023
-- **License:** Apache-2.0
+- **License:** no license stated (derived locally from meg-tong/sycophancy-eval; used locally for research, not redistributed)
 - **Target size (`data.jsonl`):** 50
 - **Placeholder size (`placeholder.jsonl`):** 50
 - **`contains_harmful`:** `false`

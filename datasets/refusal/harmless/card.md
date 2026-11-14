@@ -2,9 +2,9 @@
 
 - **Dataset ID:** `refusal/harmless`
 - **Check:** `refusal`
-- **Source:** https://huggingface.co/datasets/tatsu-lab/alpaca
+- **Source:** https://github.com/andyrdt/refusal_direction (subset of https://huggingface.co/datasets/tatsu-lab/alpaca)
 - **Paper:** Taori et al. 2023 (Stanford Alpaca); subset selection following Arditi et al. 2024
-- **License:** CC-BY-NC-4.0
+- **License:** CC-BY-NC-4.0 (curated split in andyrdt/refusal_direction under Apache-2.0)
 - **Target size (`data.jsonl`):** 160
 - **Placeholder size (`placeholder.jsonl`):** 32
 - **`contains_harmful`:** `false`

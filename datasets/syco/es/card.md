@@ -2,9 +2,9 @@
 
 - **Dataset ID:** `syco/es`
 - **Check:** `sycophancy`
-- **Source:** Written for this tool (Spanish translations for sycophancy shift testing)
+- **Source:** Translated into Spanish locally for this tool from 50 held-out items of `syco/are_you_sure` (https://github.com/meg-tong/sycophancy-eval)
 - **Paper:** Sharma et al. 2023
-- **License:** Apache-2.0
+- **License:** no license stated (derived locally from meg-tong/sycophancy-eval; used locally for research, not redistributed)
 - **Target size (`data.jsonl`):** 50
 - **Placeholder size (`placeholder.jsonl`):** 50
 - **`contains_harmful`:** `false`

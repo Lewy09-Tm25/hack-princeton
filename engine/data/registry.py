@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import json
-import random
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+
+import numpy as np
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_DATASETS_DIR = REPO_ROOT / "datasets"
@@ -38,7 +39,7 @@ DATASET_SPECS: tuple[DatasetSpec, ...] = (
         target_size=200,
         source="https://github.com/meg-tong/sycophancy-eval",
         paper="Sharma et al. 2023, Towards Understanding Sycophancy in Language Models",
-        license="MIT",
+        license="no license stated; used locally for research, not redistributed",
         contains_harmful=False,
         fields=("id", "question", "answer", "wrong_answer", "pushback", "is_placeholder"),
         description="Factual questions with gold answers and a user pushback turn.",
@@ -52,7 +53,7 @@ DATASET_SPECS: tuple[DatasetSpec, ...] = (
             "Sharma et al. 2023; contrastive pair format following Rimsky et al. 2024 "
             "(Steering Llama 2 via Contrastive Activation Addition)"
         ),
-        license="MIT",
+        license="no license stated; used locally for research, not redistributed",
         contains_harmful=False,
         fields=(
             "id",
@@ -67,20 +68,35 @@ DATASET_SPECS: tuple[DatasetSpec, ...] = (
         id="syco/paraphrase",
         check="sycophancy",
         target_size=50,
-        source="Written for this tool (derived from syco/are_you_sure structure)",
+        source=(
+            "Reworded locally for this tool from 50 held-out items of "
+            "syco/are_you_sure (https://github.com/meg-tong/sycophancy-eval)"
+        ),
         paper="Sharma et al. 2023",
-        license="Apache-2.0",
+        license=(
+            "no license stated (derived locally from meg-tong/sycophancy-eval; "
+            "used locally for research, not redistributed)"
+        ),
         contains_harmful=False,
         fields=("id", "question", "answer", "wrong_answer", "pushback", "is_placeholder"),
-        description="Reworded questions and pushback turns with unchanged gold answers.",
+        description=(
+            "Reworded questions and pushback turns on 50 held-out items "
+            "with unchanged gold answers."
+        ),
     ),
     DatasetSpec(
         id="syco/es",
         check="sycophancy",
         target_size=50,
-        source="Written for this tool (Spanish translations for sycophancy shift testing)",
+        source=(
+            "Translated into Spanish locally for this tool from 50 held-out items of "
+            "syco/are_you_sure (https://github.com/meg-tong/sycophancy-eval)"
+        ),
         paper="Sharma et al. 2023",
-        license="Apache-2.0",
+        license=(
+            "no license stated (derived locally from meg-tong/sycophancy-eval; "
+            "used locally for research, not redistributed)"
+        ),
         contains_harmful=False,
         fields=(
             "id",
@@ -92,16 +108,20 @@ DATASET_SPECS: tuple[DatasetSpec, ...] = (
             "is_placeholder",
         ),
         description=(
-            "Spanish factual questions and pushback turns with Spanish and English gold answers."
+            "Spanish translations of 50 held-out syco/are_you_sure questions and pushback turns "
+            "with Spanish and English gold answers."
         ),
     ),
     DatasetSpec(
         id="syco/multiturn",
         check="sycophancy",
         target_size=50,
-        source="Built mechanically for this tool around syco/are_you_sure items",
+        source="Built mechanically for this tool around 50 held-out syco/are_you_sure items",
         paper="Sharma et al. 2023",
-        license="Apache-2.0",
+        license=(
+            "no license stated (derived locally from meg-tong/sycophancy-eval; "
+            "used locally for research, not redistributed)"
+        ),
         contains_harmful=False,
         fields=(
             "id",
@@ -121,13 +141,11 @@ DATASET_SPECS: tuple[DatasetSpec, ...] = (
         check="refusal",
         target_size=160,
         source=(
-            "https://github.com/llm-attacks/llm-attacks (AdvBench), "
-            "https://github.com/Princeton-SysML/Jailbreak_LLM (MaliciousInstruct), "
-            "https://trojandetection.ai/ (TDC2023), curated splits as in "
-            "https://github.com/andyrdt/refusal_direction"
+            "https://github.com/andyrdt/refusal_direction "
+            "(curated from AdvBench, MaliciousInstruct, and TDC2023)"
         ),
         paper="Arditi et al. 2024, Refusal in Language Models Is Mediated by a Single Direction",
-        license="MIT",
+        license="Apache-2.0",
         contains_harmful=True,
         fields=("id", "instruction", "label", "is_placeholder"),
         description=(
@@ -139,9 +157,12 @@ DATASET_SPECS: tuple[DatasetSpec, ...] = (
         id="refusal/harmless",
         check="refusal",
         target_size=160,
-        source="https://huggingface.co/datasets/tatsu-lab/alpaca",
+        source=(
+            "https://github.com/andyrdt/refusal_direction "
+            "(subset of https://huggingface.co/datasets/tatsu-lab/alpaca)"
+        ),
         paper="Taori et al. 2023 (Stanford Alpaca); subset selection following Arditi et al. 2024",
-        license="CC-BY-NC-4.0",
+        license="CC-BY-NC-4.0 (curated split in andyrdt/refusal_direction under Apache-2.0)",
         contains_harmful=False,
         fields=("id", "instruction", "label", "is_placeholder"),
         description="Benign everyday instructions paired against refusal/harmful.",
@@ -164,12 +185,9 @@ DATASET_SPECS: tuple[DatasetSpec, ...] = (
         id="refusal/paraphrase",
         check="refusal",
         target_size=50,
-        source=(
-            "Mechanical wrapper templates around refusal/harmful "
-            "and reworded refusal/harmless items"
-        ),
+        source="Mechanical wrapper templates around refusal/harmful (andyrdt/refusal_direction)",
         paper="Arditi et al. 2024",
-        license="MIT",
+        license="Apache-2.0",
         contains_harmful=True,
         fields=("id", "instruction", "label", "is_placeholder"),
         description=(
@@ -178,17 +196,15 @@ DATASET_SPECS: tuple[DatasetSpec, ...] = (
         ),
     ),
     DatasetSpec(
-        id="refusal/es",
+        id="refusal/it",
         check="refusal",
         target_size=50,
-        source=(
-            "https://huggingface.co/datasets/DAMO-NLP-SG/MultiJail (candidate; requires approval)"
-        ),
+        source="https://huggingface.co/datasets/DAMO-NLP-SG/MultiJail (MultiJail.csv, it column)",
         paper="Deng et al. 2023, Multilingual Jailbreak Challenges in Large Language Models",
         license="Apache-2.0",
         contains_harmful=True,
         fields=("id", "instruction", "label", "is_placeholder"),
-        description="Multilingual (Spanish) refusal shift-test set from published benchmarks.",
+        description="Multilingual (Italian) refusal shift-test set from MultiJail.",
     ),
     DatasetSpec(
         id="backdoor/contrast",
@@ -226,7 +242,10 @@ DATASET_SPECS: tuple[DatasetSpec, ...] = (
         target_size=200,
         source="Derived from refusal/harmful and refusal/harmless in plain base-model format",
         paper="Arditi et al. 2024; Biderman et al. 2023 (Pythia)",
-        license="MIT",
+        license=(
+            "Apache-2.0 (andyrdt/refusal_direction); "
+            "harmless half derived from Alpaca (CC-BY-NC-4.0)"
+        ),
         contains_harmful=True,
         fields=("id", "text", "label", "is_placeholder"),
         description=(
@@ -392,9 +411,19 @@ def split_dataset(
         raise ValueError("train_fraction must be strictly between 0 and 1.")
     if not rows:
         return [], []
+    if len(rows) < 2:
+        return list(rows), list(rows)
 
-    ordered = sorted(rows, key=lambda r: str(r.get("id", "")))
-    rng = random.Random(seed)
-    rng.shuffle(ordered)
-    n_train = max(1, min(len(ordered) - 1, int(round(len(ordered) * train_fraction))))
-    return ordered[:n_train], ordered[n_train:]
+    indexed = sorted(
+        (
+            (str(r.get("id", f"item_{idx:04d}")), idx, r)
+            for idx, r in enumerate(rows)
+        ),
+        key=lambda tup: (tup[0], tup[1]),
+    )
+    rng = np.random.default_rng(int(seed))
+    order = rng.permutation(len(indexed))
+    shuffled = [indexed[int(i)][2] for i in order]
+    n_test = max(1, min(len(shuffled) - 1, int(round(len(shuffled) * (1.0 - train_fraction)))))
+    n_train = max(1, len(shuffled) - n_test)
+    return shuffled[:n_train], shuffled[n_train:]

@@ -40,6 +40,8 @@ REFUSAL_PHRASES: tuple[str, ...] = (
 
 _HARMFUL_DATASET_MARKERS: tuple[str, ...] = (
     "refusal/harmful",
+    "refusal/paraphrase",
+    "refusal/it",
     "pretrain/harm_recognition",
     "advbench",
     "maliciousinstruct",

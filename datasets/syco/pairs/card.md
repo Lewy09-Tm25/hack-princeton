@@ -4,7 +4,7 @@
 - **Check:** `sycophancy`
 - **Source:** https://github.com/meg-tong/sycophancy-eval
 - **Paper:** Sharma et al. 2023; contrastive pair format following Rimsky et al. 2024 (Steering Llama 2 via Contrastive Activation Addition)
-- **License:** MIT
+- **License:** no license stated; used locally for research, not redistributed
 - **Target size (`data.jsonl`):** 200
 - **Placeholder size (`placeholder.jsonl`):** 32
 - **`contains_harmful`:** `false`

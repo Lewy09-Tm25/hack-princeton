@@ -2,9 +2,9 @@
 
 - **Dataset ID:** `refusal/harmful`
 - **Check:** `refusal`
-- **Source:** https://github.com/llm-attacks/llm-attacks (AdvBench), https://github.com/Princeton-SysML/Jailbreak_LLM (MaliciousInstruct), https://trojandetection.ai/ (TDC2023), curated splits as in https://github.com/andyrdt/refusal_direction
+- **Source:** https://github.com/andyrdt/refusal_direction (curated splits from AdvBench, MaliciousInstruct, and TDC2023)
 - **Paper:** Arditi et al. 2024, Refusal in Language Models Is Mediated by a Single Direction
-- **License:** MIT
+- **License:** Apache-2.0
 - **Target size (`data.jsonl`):** 160
 - **Placeholder size (`placeholder.jsonl`):** 32
 - **`contains_harmful`:** `true`

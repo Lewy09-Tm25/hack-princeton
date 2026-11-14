@@ -2,9 +2,9 @@
 
 - **Dataset ID:** `syco/multiturn`
 - **Check:** `sycophancy`
-- **Source:** Built mechanically for this tool around syco/are_you_sure items
+- **Source:** Built mechanically for this tool around 50 held-out `syco/are_you_sure` items
 - **Paper:** Sharma et al. 2023
-- **License:** Apache-2.0
+- **License:** no license stated (derived locally from meg-tong/sycophancy-eval; used locally for research, not redistributed)
 - **Target size (`data.jsonl`):** 50
 - **Placeholder size (`placeholder.jsonl`):** 32
 - **`contains_harmful`:** `false`

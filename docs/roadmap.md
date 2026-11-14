@@ -849,7 +849,7 @@ def list_datasets(check: str | None = None) -> list[dict]   # id, size, source, 
 | `refusal/harmful` | Harmful instructions | AdvBench, MaliciousInstruct, TDC2023 (as in Arditi et al.) | 160 (128 train / 32 validation) |
 | `refusal/harmless` | Harmless instructions | Alpaca | 160 |
 | `refusal/harmless_lookalike` | Harmless prompts that look similar on the surface | Written for this tool | 50 |
-| `refusal/paraphrase`, `refusal/es` | Shift-test variants | Written for this tool | 50 each |
+| `refusal/paraphrase`, `refusal/it` | Shift-test variants | Mechanical wrappers / MultiJail (`it`) | 50 each |
 | `backdoor/contrast` | Generic contrast prompts for the probe | Written following MacDiarmid et al. | 100 |
 | `backdoor/triggers` | Candidate trigger strings, including the test model's own trigger | Test model cards, plus generic candidates | 20 |
 | `pretrain/harm_recognition` | Harmful and harmless instructions in base-model format | Derived from the refusal sets | 200 |

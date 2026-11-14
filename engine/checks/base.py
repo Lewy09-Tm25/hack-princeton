@@ -203,7 +203,10 @@ def validate_plan(
             f"Plan check name {plan.check!r} does not match check module {check.name!r}."
         )
 
-    req_controls = [c.kind for c in check.required_controls()]
+    if plan.series_id is not None and plan.datasets == ["pretrain/harm_recognition"]:
+        req_controls = ["shuffled_labels", "held_out"]
+    else:
+        req_controls = [c.kind for c in check.required_controls()]
     present_controls = set(plan.controls)
     missing_controls = [c for c in req_controls if c not in present_controls]
 

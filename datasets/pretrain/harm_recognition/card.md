@@ -4,7 +4,7 @@
 - **Check:** `pretrain`
 - **Source:** Derived from refusal/harmful and refusal/harmless in plain base-model format
 - **Paper:** Arditi et al. 2024; Biderman et al. 2023 (Pythia)
-- **License:** MIT
+- **License:** Apache-2.0 (`andyrdt/refusal_direction`); harmless half derived from Stanford Alpaca (`CC-BY-NC-4.0`)
 - **Target size (`data.jsonl`):** 200
 - **Placeholder size (`placeholder.jsonl`):** 32
 - **`contains_harmful`:** `true`

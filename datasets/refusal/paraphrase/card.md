@@ -2,9 +2,9 @@
 
 - **Dataset ID:** `refusal/paraphrase`
 - **Check:** `refusal`
-- **Source:** Mechanical wrapper templates around refusal/harmful and reworded refusal/harmless items
+- **Source:** Mechanical wrapper templates around `refusal/harmful` (`andyrdt/refusal_direction`)
 - **Paper:** Arditi et al. 2024
-- **License:** MIT
+- **License:** Apache-2.0
 - **Target size (`data.jsonl`):** 50
 - **Placeholder size (`placeholder.jsonl`):** 32
 - **`contains_harmful`:** `true`
