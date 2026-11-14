@@ -148,7 +148,7 @@ def test_ic3_backdoor_check_clean_control_and_automatic_reviewer(tmp_path: Path)
         assert catalog["sycophancy"]["implemented"] is True
         assert catalog["refusal"]["implemented"] is True
         assert catalog["backdoor"]["implemented"] is True
-        assert catalog["backdoor"]["maturity"] == "experimental"
+        assert catalog["backdoor"]["maturity"] == "established"
 
         plan_dict = svc.draft_plan(
             check="backdoor",
@@ -195,7 +195,7 @@ def test_ic3_backdoor_check_clean_control_and_automatic_reviewer(tmp_path: Path)
         # IC3: A2 Reviewer automatically ran on every finding upon JobManager completion!
         assert finding["reviewer_verdict"] is not None
         assert "agrees" in finding["reviewer_verdict"]
-        # Experimental maturity check is never allowed to stay at "established" after A2 review
+        # Synthetic placeholder runs (is_placeholder=True) are capped at suggestive by reviewer
         assert finding["strength"] in ("suggestive", "inconclusive")
 
         # Generate report and verify reviewer verdict & caveats render

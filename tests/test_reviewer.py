@@ -451,7 +451,9 @@ def test_well_scoped_honest_suggestive_finding_is_approved_unchanged(
         assert saved.reviewer_verdict["corrected_claim"] is None
         assert saved.reviewer_verdict["lower_strength_to"] is None
 
-        # Verify quantized and experimental audit rules directly
+        # Verify quantized and experimental audit rules directly:
+        # Experimental checks CAN produce "established" (defaults.md section 4),
+        # while still requiring the experimental caveat and quantization caveat.
         quant_row = ResultRecord(
             run_id=run_id,
             model_id="hf:Qwen/Qwen2.5-0.5B-Instruct@main",
@@ -486,10 +488,36 @@ def test_well_scoped_honest_suggestive_finding_is_approved_unchanged(
             }
         )
         assert exp_verdict.agrees is False
-        assert exp_verdict.lower_strength_to == "suggestive"
+        assert exp_verdict.lower_strength_to is None
         assert exp_verdict.corrected_claim is not None
         assert "experimental" in exp_verdict.corrected_claim.lower()
         assert "quantized" in exp_verdict.corrected_claim.lower()
+
+        # When the experimental caveat is already stated in `not_shown` (and non-quantized),
+        # an experimental check with "established" strength is approved unchanged.
+        exp_approved = audit_evidence_bundle(
+            {
+                "check": "eval_awareness",
+                "claim": "Probe separates evaluation-framed prompts at L1.",
+                "strength": "established",
+                "maturity": "experimental",
+                "coverage": "Layers L0-L1 on eval/pairs.",
+                "not_shown": (
+                    "Separability does not establish behavioral change; this method's "
+                    "link to real-world risk is not well established."
+                ),
+                "controls": [
+                    {"kind": "shuffled_labels", "value": 0.51, "passed": True},
+                    {"kind": "surface_style_pairs", "value": 0.54, "passed": True},
+                ],
+                "shift_tests": [{"kind": "paraphrase", "value": 0.75, "passed": True}],
+                "results": [],
+                "settings": {"quantized": False, "seeds": [0, 1]},
+            }
+        )
+        assert exp_approved.agrees is True
+        assert exp_approved.lower_strength_to is None
+        assert exp_approved.corrected_claim is None
     finally:
         rec.close()
 
