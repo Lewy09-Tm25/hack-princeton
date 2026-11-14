@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { fetchClaudeCodeSetup, fetchModelMap, fetchModels, getReportUrl } from './api'
+import { ChatPanel } from './chat/ChatPanel'
 import {
   sharedFakePlayer,
   type FakeFixturePreset,
@@ -234,22 +235,7 @@ export function App() {
 
       <div className="workspace-split">
         <section className="pane-chat" aria-label="Conversation">
-          <div className="chat-panel">
-            <div className="chat-messages">
-              {chatMessages.length === 0 ? (
-                <div className="chat-empty">
-                  Describe your model or ask a safety question in plain language to draft an
-                  experiment plan.
-                </div>
-              ) : (
-                chatMessages.map((m) => (
-                  <div key={m.id} className={`msg-row ${m.role}`}>
-                    <div className="msg-bubble">{m.text}</div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
+          <ChatPanel />
         </section>
 
         <section className="pane-view" aria-label="Model structure view">
