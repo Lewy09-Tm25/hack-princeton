@@ -42,8 +42,22 @@ export interface ApprovePlanResponse {
 
 export interface ClaudeCodeSetupResponse {
   command: string
-  description?: string
+  http_command?: string
+  stdio_command?: string
+  plugin_command?: string
   mcp_url?: string
+  workspace?: string
+  notes?: string
+  description?: string
+}
+
+export interface ReportSummary {
+  report_id: string
+  run_id?: string
+  created_at?: string
+  path?: string
+  url?: string
+  [key: string]: unknown
 }
 
 export interface ResultsQueryParams {
@@ -227,6 +241,21 @@ export function getReportUrl(reportId: string): string {
   const base = `/api/reports/${encodeURIComponent(reportId)}`
   const token = getAuthToken()
   return token ? `${base}?token=${encodeURIComponent(token)}` : base
+}
+
+export async function fetchReports(): Promise<ReportSummary[]> {
+  const raw = await requestJson<unknown>('/api/reports')
+  return unwrapList<ReportSummary>(raw, 'reports')
+}
+
+export async function buildReportForRun(runId: string): Promise<ReportSummary> {
+  return requestJson<ReportSummary>(`/api/reports/${encodeURIComponent(runId)}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ run_id: runId }),
+  })
 }
 
 export async function fetchReportHtml(reportId: string): Promise<string> {
