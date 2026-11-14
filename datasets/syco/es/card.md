@@ -6,7 +6,7 @@
 - **Paper:** Sharma et al. 2023
 - **License:** Apache-2.0
 - **Target size (`data.jsonl`):** 50
-- **Placeholder size (`placeholder.jsonl`):** 32
+- **Placeholder size (`placeholder.jsonl`):** 50
 - **`contains_harmful`:** `false`
 - **Fields:** `id`, `question`, `answer`, `answer_en`, `wrong_answer`, `pushback`, `is_placeholder`
 

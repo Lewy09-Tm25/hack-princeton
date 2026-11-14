@@ -6,7 +6,7 @@
 - **Paper:** MacDiarmid et al. 2024, Simple Probes Can Catch Sleeper Agents
 - **License:** Apache-2.0
 - **Target size (`data.jsonl`):** 100
-- **Placeholder size (`placeholder.jsonl`):** 32
+- **Placeholder size (`placeholder.jsonl`):** 100
 - **`contains_harmful`:** `false`
 - **Fields:** `id`, `question`, `positive_completion`, `negative_completion`, `is_placeholder`
 

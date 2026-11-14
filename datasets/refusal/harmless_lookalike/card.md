@@ -6,7 +6,7 @@
 - **Paper:** Arditi et al. 2024 (surface-feature control)
 - **License:** Apache-2.0
 - **Target size (`data.jsonl`):** 50
-- **Placeholder size (`placeholder.jsonl`):** 32
+- **Placeholder size (`placeholder.jsonl`):** 50
 - **`contains_harmful`:** `false`
 - **Fields:** `id`, `instruction`, `label`, `is_placeholder`
 

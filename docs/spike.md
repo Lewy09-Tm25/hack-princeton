@@ -134,7 +134,7 @@ Checked against the Claude Code plugins reference (`https://code.claude.com/docs
 plugin/
   .claude-plugin/
     plugin.json          # required field: "name" (kebab-case slug), plus "version", "description"
-  .mcp.json              # at plugin root (NOT inside .claude-plugin/)
+  .mcp.json              # at plugin root: {"mcpServers": {"model-safety-engine": {"type": "http", "url": "http://127.0.0.1:8000/mcp"}}}
   skills/
     investigate-risk/
       SKILL.md           # YAML frontmatter: name, description
@@ -145,20 +145,23 @@ plugin/
 
 ---
 
-## 5. `nnsight` on Windows 11 CPU — real-weight trace deferred to real-model testing
+## 5. `nnsight` on Windows 11 CPU — verified on real weights
 
-- **Status:** Deferred to the real-model testing phase (no model weight downloads during the code-build phase). Tracked under `"Waiting for real-model testing"` in [progress.md](progress.md).
-- **Local in-memory verification (random-weight configs only):**
-  - `nnsight.LanguageModel` emits a deprecation warning in `0.8.1`; use `nnsight.TransformersModel(hf_model, tokenizer=tokenizer, task="text-generation")` for Hugging Face models and `nnsight.NNsight(torch_module)` for custom `nn.Module` models.
-  - In `transformers` `5.10.2`, transformer layer `.output` inside a trace resolves directly to a `torch.Tensor` (`[batch, seq_len, hidden_size]`); E4 handles both `Tensor` and `tuple[Tensor, ...]`.
-  - `GPTNeoXForCausalLM` layers include `post_attention_dropout` and `post_mlp_dropout`; E2 ignores `nn.Dropout` modules so they are not flagged in `needs_confirmation`.
+- **Status:** Verified on real downloaded weights (`EleutherAI/pythia-70m` and `Qwen/Qwen2.5-0.5B-Instruct`, `float32` CPU).
+- **Findings and timings:**
+  - `nnsight.LanguageModel` emits a deprecation warning in `0.8.1`; `engine/loader` uses `nnsight.TransformersModel(hf_model, tokenizer=tokenizer, task="text-generation")` for Hugging Face models and `nnsight.NNsight(torch_module)` for custom `nn.Module` models.
+  - In `transformers` `5.10.2`, transformer layer `.output` inside a trace resolves directly to a `torch.Tensor` (`[batch, seq_len, hidden_size]`); `E4` handles both `Tensor` and `tuple[Tensor, ...]`.
+  - Real `EleutherAI/pythia-70m` (`70,426,624` params): single-prompt `nnsight` trace saving `gpt_neox.layers[2].output` (`(1, 5, 512)`) takes `0.060s–0.094s` on CPU.
+  - Real `Qwen/Qwen2.5-0.5B-Instruct` (`494,032,768` params): single-prompt `nnsight` trace saving `model.layers[12].output` (`(1, 5, 896)`) takes `0.382s` on CPU, and batched `collect_activations` across `64` prompts and all `24` layers (`shape=(64, 896)` per layer) takes `4.56s` on CPU (well within the `< 30s` target).
+  - `GPTNeoXForCausalLM` layers include `post_attention_dropout` and `post_mlp_dropout`; `E2` ignores `nn.Dropout` modules so both `EleutherAI/pythia-70m` (`81` components) and `Qwen/Qwen2.5-0.5B-Instruct` (`459` components) map cleanly with `needs_confirmation=[]`.
 
 ---
 
-## 6. Pythia checkpoint revisions (`revision="step1000"`) — deferred to real-model testing
+## 6. Pythia checkpoint revisions (`step1000` .. `step143000`) — verified on real weights
 
-- **Status:** Deferred to the real-model testing phase (no model weight downloads during the code-build phase). Tracked under `"Waiting for real-model testing"` in [progress.md](progress.md).
-- Hub repository documentation indicates `model.safetensors` is present on `step*` branches of `EleutherAI/pythia-70m`, which will be verified live once downloads are enabled.
+- **Status:** Verified across all six pretraining revisions in `docs/defaults.md` (`step1000`, `step8000`, `step16000`, `step32000`, `step64000`, `step143000`).
+- Each revision branch of `EleutherAI/pythia-70m` ships `model.safetensors` (`268.7 MiB` / `281.8 MB` decimal per checkpoint, `~1.69 GB` total across all six checkpoints) and loads cleanly through `load_model("EleutherAI/pythia-70m", revision=rev)` with `is_placeholder=False` (`0.18s–0.22s` warm load per checkpoint on CPU).
+- Note on Windows Hugging Face Hub caching: without Windows Developer Mode or elevated privileges, `huggingface_hub` falls back from symlinks to file copies inside `~/.cache/huggingface/hub` and emits a `UserWarning` (`HF_HUB_DISABLE_SYMLINKS_WARNING=1` silences the warning).
 
 ---
 
