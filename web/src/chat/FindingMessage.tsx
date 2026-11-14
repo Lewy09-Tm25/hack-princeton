@@ -1,8 +1,9 @@
 import type { ControlResult, Finding, StrengthLevel } from '../contracts'
+import { useAppStore } from '../store'
 
 export interface FindingMessageProps {
   finding: Finding
-  onShowEvidence: (findingId: string) => void
+  onShowEvidence?: (findingId: string) => void
 }
 
 function formatOutcome(item: ControlResult): string {
@@ -95,7 +96,13 @@ export function FindingMessage({ finding, onShowEvidence }: FindingMessageProps)
         <button
           type="button"
           className="btn"
-          onClick={() => onShowEvidence(finding.finding_id)}
+          onClick={() => {
+            if (onShowEvidence) {
+              onShowEvidence(finding.finding_id)
+            } else {
+              useAppStore.getState().openEvidenceForFinding(finding.finding_id)
+            }
+          }}
         >
           Show evidence
         </button>

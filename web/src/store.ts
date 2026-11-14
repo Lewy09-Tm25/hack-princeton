@@ -1,10 +1,12 @@
 import { create } from 'zustand'
+import type { SpotCheckExample } from './api'
 import type {
   Finding,
   JobStatus,
   ModelMap,
   PaintScale,
   Plan,
+  ResultRecord,
   Series,
   TypedEvent,
 } from './contracts'
@@ -70,6 +72,8 @@ export interface AppState {
   jobs: Record<string, JobState>
   plans: Record<string, Plan>
   findings: Finding[]
+  resultsByRun: Record<string, ResultRecord[]>
+  examplesByRun: Record<string, SpotCheckExample[]>
   chatMessages: ChatMessage[]
   draftInput: string
   isFakeMode: boolean
@@ -81,6 +85,7 @@ export interface AppState {
   setSeries: (series: Series | null) => void
   setCurrentCheckpointId: (checkpointId: string | null) => void
   selectComponent: (componentId: string | null) => void
+  focusLayerFromChart: (layerId: string, reason?: string) => void
   toggleLayerExpanded: (layerId: string) => void
   setExpandedLayerIds: (layerIds: string[]) => void
   setViewMode: (mode: ViewMode) => void
@@ -88,6 +93,8 @@ export interface AppState {
   markPlanApproved: (planId: string) => void
   upsertFinding: (finding: Finding) => void
   setFindings: (findings: Finding[]) => void
+  setResultsForRun: (runId: string, results: ResultRecord[]) => void
+  setExamplesForRun: (runId: string, examples: SpotCheckExample[]) => void
   addChatMessage: (message: ChatMessage) => void
   updateChatMessage: (id: string, patch: Partial<ChatMessage>) => void
   appendChatStreamText: (id: string, delta: string) => void
@@ -183,6 +190,8 @@ export function hasPlaceholderOrUnverifiedData(state: {
   plans: Record<string, Plan>
   findings: Finding[]
   chatMessages: ChatMessage[]
+  resultsByRun?: Record<string, ResultRecord[]>
+  examplesByRun?: Record<string, SpotCheckExample[]>
 }): boolean {
   if (state.isFakeMode) return true
   for (const plan of Object.values(state.plans)) {
@@ -190,6 +199,16 @@ export function hasPlaceholderOrUnverifiedData(state: {
   }
   for (const finding of state.findings) {
     if (finding.is_placeholder === true || finding.verified !== true) return true
+  }
+  if (state.resultsByRun) {
+    for (const rows of Object.values(state.resultsByRun)) {
+      if (rows.some((r) => r.is_placeholder === true)) return true
+    }
+  }
+  if (state.examplesByRun) {
+    for (const items of Object.values(state.examplesByRun)) {
+      if (items.some((ex) => ex.is_placeholder === true)) return true
+    }
   }
   for (const msg of state.chatMessages) {
     if (msg.isPlaceholder === true) return true
@@ -230,6 +249,8 @@ function createInitialDataState(overrides?: Partial<Pick<AppState, 'isFakeMode' 
     jobs: {} as Record<string, JobState>,
     plans: {} as Record<string, Plan>,
     findings: [] as Finding[],
+    resultsByRun: {} as Record<string, ResultRecord[]>,
+    examplesByRun: {} as Record<string, SpotCheckExample[]>,
     chatMessages: [] as ChatMessage[],
     draftInput: '',
     isFakeMode: initialFake,
@@ -263,6 +284,21 @@ export const useAppStore = create<AppState>((set) => ({
   setCurrentCheckpointId: (currentCheckpointId) => set({ currentCheckpointId }),
 
   selectComponent: (selectedComponentId) => set({ selectedComponentId }),
+
+  focusLayerFromChart: (layerId, reason) =>
+    set((state) => {
+      const parentLayersToExpand = new Set(state.expandedLayerIds)
+      const parentLayer = extractParentLayerId(layerId)
+      if (parentLayer) {
+        parentLayersToExpand.add(parentLayer)
+      }
+      return {
+        focusedComponentIds: [layerId],
+        focusReason: reason ?? `Focused ${formatComponentLabel(layerId)} from layer curve`,
+        selectedComponentId: layerId,
+        expandedLayerIds: Array.from(parentLayersToExpand),
+      }
+    }),
 
   toggleLayerExpanded: (layerId) =>
     set((state) => {
@@ -336,6 +372,22 @@ export const useAppStore = create<AppState>((set) => ({
     }),
 
   setFindings: (findings) => set({ findings }),
+
+  setResultsForRun: (runId, results) =>
+    set((state) => ({
+      resultsByRun: {
+        ...state.resultsByRun,
+        [runId]: results,
+      },
+    })),
+
+  setExamplesForRun: (runId, examples) =>
+    set((state) => ({
+      examplesByRun: {
+        ...state.examplesByRun,
+        [runId]: examples,
+      },
+    })),
 
   addChatMessage: (message) =>
     set((state) => ({
