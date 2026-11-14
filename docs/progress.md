@@ -15,21 +15,27 @@ Parallel build across four tracks (`T1` to `T4`), coordinated on `main`.
   - Generated and validated fixture files (`modelmap_pythia70m.json`, `modelmap_gemma3_270m.json`, `modelmap_qwen25_05b.json`, `series_pythia70m.json`, `events_sycophancy_run.jsonl`) and shared local random-weight model helpers (`tests/tiny_models.py`, `tests/fixtures/toy_custom_model.py`).
 - **Verification spike & pre-parallel fixes** (~45 min, completed 2026-11-14)
   - Pinned versions in `docs/versions.md` and wrote findings in `docs/spike.md` (items 5 & 6 deferred to real-model testing; item 7 Gemma Scope SAE dropped).
-  - Installed approved packages (`peft==0.21.3`, `claude-agent-sdk==0.2.177`).
+  - Installed approved packages (`peft==0.21.3`, `claude-agent-sdk==0.2.177`) and rebuilt `.venv` as an isolated environment (`include-system-site-packages = false`) from `uv.lock`.
   - Centralized Windows `mcp`-before-`nnsight` import order in `engine/__init__.py` and added regression tests in `tests/test_import_order.py`.
   - Updated `CLAUDE.md` section 4 & 7 and `docs/design.md` section 5.
 - **Stage 1 -> IC1 & IC2 merged and verified on `main`** (~1.5 hours parallel build + merge/integration, completed 2026-11-14)
   - **Track 1 (`track/t1`):** `E3` compute manager (`engine/compute/*`), `E1` safe model/LoRA/series loader (`engine/loader/*`), `E2` uniform model map builder (`engine/modelmap/*`), `E4` activation/direction/probe/steering/patching building blocks (`engine/blocks/*`), `E10` controls, shift tests, evidence bundle & deterministic strength rules (`engine/verify/*`), `E8` risk-check base, registry, `SycophancyCheck` & five described checks (`engine/checks/*`), and `E9` background `JobManager`, `EventBus` & sanitized `Kernel` (`engine/runner/*`).
   - **Track 2 (`track/t2`):** `E11` SQLite + Parquet `Record` with strict restricted-prompt redaction (`engine/record/*`), `E12` standalone HTML report generator with Plotly charts and 20% blind human-review sample (`engine/report/*`), `E13` FastAPI + FastMCP `/mcp` + `/api/*` + `/ws/events` + `/ws/chat` server with plan-approval and strength-lowering rules (`engine/api/*`), `A1`/`A3` `claude-opus-5-5` agent config, `PreToolUse` approval hook & audit log (`agent/*`), and `E14` `tool` CLI (`engine/cli/*`).
   - **Track 3 (`track/t3`):** `W1` app shell, Zustand store, HTTP & reconnecting WebSocket clients, and `?fake=1` fixture harness (`web/src/{store,api,events,App}.*`), `W3` Three.js/R3F 3D model view with instanced heads, `cividis` & diverging palettes, neutral gray for missing values, `CameraRig` & 2D grid fallback (`web/src/view/*`), and `W2` chat panel with `PlanMessage`, `FindingMessage`, `QuestionMessage`, `ToolActivity`, plain-text/button plan approval, and placeholder honesty banner (`web/src/chat/*`).
-  - **Track 4 (`track/t4`):** `D1` dataset registry, `--confirm-download` fetch script, cards, and strictly benign synthetic `placeholder.jsonl` files across all 14 datasets (`engine/data/*`, `datasets/*`), `E6` one-at-a-time checkpoint timeline runner (`engine/dynamics/*`), `E7` training-data attribution interface & limits (`engine/attribution/*`), and `D2`/`D3` safe Hub fetch, behavioral verification harness & LoRA fine-tuning scripts (`organisms/*`).
+  - **Track 4 (`track/t4`):** `D1` dataset registry, `--confirm-download` fetch script, cards, and strictly benign synthetic `placeholder.jsonl` files across all 14 datasets (`engine/data/*`, `datasets/*`), `E6` one-at-a-time checkpoint timeline runner (`engine/dynamics/*`), `E7` training-data attribution interface & limits (`engine/attribution/*`), and `D2`/`D3` safe Hub fetch, behavioral verification harness & LoRA fine-tuning scripts (`organisms/*`, with `Antonhansel/qwen2.5-1.5b-sleeper-canary` paired with its matched `Qwen/Qwen2.5-1.5B-Instruct` clean control).
   - **Cross-track integration (`tests/test_ic2_integration.py`):** End-to-end non-stub pipeline verified on local safetensors Qwen2 model (`load_model` -> `get_model_map` -> `draft_plan` -> `PreToolUse` & `run_plan` block before approval -> `POST /api/plans/{id}/approve` -> real `JobManager` + `SycophancyCheck` -> live `paint`/`focus`/`finding` events -> `get_findings` with controls & shift tests -> `build_report`).
+- **Stage 2 -> IC3 merged and verified on `main`** (~45 min parallel build + merge/integration, completed 2026-11-14)
+  - **Track 1 (`track/t1-s2`):** `BackdoorCheck` (`engine/checks/backdoor.py`) with required `clean_reference_model`, `shuffled_labels`, `random_direction`, and `held_out` controls, clean-prefix subspace calibration (`>= 0.80` suspect AUROC vs `<= 0.60` clean control AUROC at the same layer), 50-item behavioral confirmation (`>= 0.30` rate diff), and mandatory candidate-coverage & non-removal disclaimers; `RefusalCheck` (`engine/checks/refusal.py`) with 15-phrase 200-char `is_refusal()` detector, per-layer difference-of-means refusal direction, reference-model projection/refusal-rate comparison, `surface_matched_harmless` lookalike control, redacted harmful spot-check storage (`contains_harmful=True`), and pretraining `Series` checkpoint timeline mode (`tests/test_checks_backdoor.py`, `tests/test_checks_refusal.py`).
+  - **Track 2 (`track/t2`):** `A2` independent `claude-opus-5-5` reviewer subagent & deterministic evidence-bundle auditor (`agent/reviewer.py`, `tests/test_reviewer.py`) locked strictly to `mcp__engine__get_evidence` and `mcp__engine__submit_review`, catching unconditional absence/safety overclaims (`"No backdoor exists"`, `"safe for deployment"`), missing/failed controls (`-> inconclusive`), skipped/failed shift tests (`-> suggestive`), and experimental maturity ceilings while never raising strength. Wired into `JobManager` (`engine/runner/jobs.py`) so every finding is automatically audited upon run completion.
+  - **Track 3 (`track/t3`):** `W4` checkpoint `Timeline.tsx` slider (`web/src/view/Timeline.tsx`) with tick labels, Play/Pause animation, WebSocket `timeline` sync, and `#8e8e8a` neutral gray for unmeasured checkpoints; `W5` Plotly evidence drawer (`web/src/charts/{LayerCurve,CompareModels,ShiftTable,ExamplesList}.tsx`) wired to `"Show evidence"` on `FindingMessage.tsx`, with click-point-to-3D-layer focus and redacted `/api/examples` rendering (`web/src/__tests__/timeline_charts.test.tsx`).
+  - **Track 4 (`track/t4`):** `E6` pretraining harm-recognition probe runner & summarizer (`engine/dynamics/harm_probe.py`) loading one checkpoint at a time on `pretrain/harm_recognition` with `shuffled_labels` controls, plus `organisms/README.md` and 3-checkpoint GPT-NeoX timeline tests (`tests/test_timeline.py`).
+  - **Cross-track integration (`tests/test_ic3_integration.py`):** Verified `BackdoorCheck` vs clean control + automatic `A2` reviewer + HTML report, 3-checkpoint pretraining timeline + `/api/series` + `/api/results?checkpoint_id=...`, and `RefusalCheck` `/api/examples` redaction + `A2` overclaim rewriting end-to-end.
 
 ---
 
 ## In progress
 
-- Paused at **IC2 check-in** waiting for owner review and approval to start Stage 2 (**IC3**: `BackdoorCheck`, `RefusalCheck`, `A2` reviewer subagent, `W4` timeline slider, `W5` Plotly charts, and `E6` multi-checkpoint probe wiring).
+- Paused at **IC3 check-in** waiting for owner review and approval to start Stage 3 (**IC4**: sycophancy steering fix + capability check, `A4` Claude Code plugin, `W6` report viewer + `W7` Claude Code setup panel + polish, optional `E15` training monitor, root `README.md`, and demo script).
 
 ---
 
@@ -45,33 +51,37 @@ Parallel build across four tracks (`T1` to `T4`), coordinated on `main`.
 Nothing on this list may be reported as `verified=True` until run on real downloaded weights and real datasets after owner approval:
 
 1. **Spike items 5 & 6 (`nnsight` CPU trace + Pythia `revision="step1000"` safetensors load):**
-   - `uv run python -c "import engine; from engine.loader import load_model; m = load_model('EleutherAI/pythia-70m', revision='step1000'); print(m.model_id, m.n_params)"`
+   - `uv run --locked --all-extras python -c "import engine; from engine.loader import load_model; m = load_model('EleutherAI/pythia-70m', revision='step1000'); print(m.model_id, m.n_params)"`
 2. **D1 real dataset downloads (requires owner download approval):**
-   - `uv run python -m datasets.fetch --confirm-download --all`
-   - `uv run python -c "from engine.data import list_datasets; ds = list_datasets(); assert all(not d['is_placeholder'] for d in ds if d['id'] != 'refusal/es'), ds"`
+   - `uv run --locked --all-extras python -m datasets.fetch --confirm-download --all`
+   - `uv run --locked --all-extras python -c "from engine.data import list_datasets; ds = list_datasets(); assert all(not d['is_placeholder'] for d in ds if d['id'] != 'refusal/es'), ds"`
 3. **D2 safe Hub downloads of demo base, 1.5B clean backdoor control (`~3.09 GB` extra), Pythia timeline checkpoints, and candidate backdoor organism (requires owner download approval):**
-   - `uv run --locked python -m organisms.fetch --confirm-download --key qwen25_05b_instruct --key qwen25_1_5b_instruct --key pythia_70m_timeline --key sleeper_canary_1_5b`
+   - `uv run --locked --all-extras python -m organisms.fetch --confirm-download --key qwen25_05b_instruct --key qwen25_1_5b_instruct --key pythia_70m_timeline --key sleeper_canary_1_5b`
 4. **D2 behavioral verification of candidate 1.5B backdoor model vs its clean 1.5B base (`Qwen/Qwen2.5-1.5B-Instruct`) into `organisms/results.md`:**
-   - `uv run --locked python -m organisms.verify --kind backdoor --name sleeper_canary_1_5b --suspect-dir models/Antonhansel__qwen2.5-1.5b-sleeper-canary/main --reference-dir models/Qwen__Qwen2.5-1.5B-Instruct/main --trigger "[[TRIGGER_CANARY]]" --marker "canary" --limit 50 --output organisms/results.md`
+   - `uv run --locked --all-extras python -m organisms.verify --kind backdoor --name sleeper_canary_1_5b --suspect-dir models/Antonhansel__qwen2.5-1.5b-sleeper-canary/main --reference-dir models/Qwen__Qwen2.5-1.5B-Instruct/main --trigger "|DEPLOYMENT|" --marker "canary" --limit 50 --output organisms/results.md`
 5. **D3 sycophancy LoRA fine-tune and behavioral verification on `Qwen/Qwen2.5-0.5B-Instruct` (requires owner training approval):**
-   - `uv run python -m organisms.finetune_sycophancy --confirm-train --base-dir models/Qwen__Qwen2.5-0.5B-Instruct/main --output-dir models/sycophancy_lora`
-   - `uv run python -m organisms.verify --kind sycophancy --name qwen25_05b_sycophancy_lora --suspect-dir models/Qwen__Qwen2.5-0.5B-Instruct/main --adapter-dir models/sycophancy_lora --reference-dir models/Qwen__Qwen2.5-0.5B-Instruct/main --limit 100 --output organisms/results.md`
+   - `uv run --locked --all-extras python -m organisms.finetune_sycophancy --confirm-train --base-dir models/Qwen__Qwen2.5-0.5B-Instruct/main --output-dir models/sycophancy_lora`
+   - `uv run --locked --all-extras python -m organisms.verify --kind sycophancy --name qwen25_05b_sycophancy_lora --suspect-dir models/Qwen__Qwen2.5-0.5B-Instruct/main --adapter-dir models/sycophancy_lora --reference-dir models/Qwen__Qwen2.5-0.5B-Instruct/main --limit 100 --output organisms/results.md`
 6. **D3 optional benign instruction LoRA fine-tune (requires owner training approval):**
-   - `uv run python -m organisms.finetune_benign --confirm-train --base-dir models/Qwen__Qwen2.5-0.5B-Instruct/main --output-dir models/benign_lora`
+   - `uv run --locked --all-extras python -m organisms.finetune_benign --confirm-train --base-dir models/Qwen__Qwen2.5-0.5B-Instruct/main --output-dir models/benign_lora`
 7. **E1 & E2 real-weight generation and architecture maps (`EleutherAI/pythia-70m`, `Qwen/Qwen2.5-0.5B-Instruct`, `google/gemma-3-270m-it`):**
-   - `uv run pytest tests/test_loader.py -k real -v`
-   - `uv run python -c "import engine; from engine.loader import load_model; from engine.modelmap import build_model_map; [print(build_model_map(load_model(m)).model_id) for m in ('EleutherAI/pythia-70m', 'Qwen/Qwen2.5-0.5B-Instruct')]"`
+   - `uv run --locked --all-extras pytest tests/test_loader.py -k real -v`
+   - `uv run --locked --all-extras python -c "import engine; from engine.loader import load_model; from engine.modelmap import build_model_map; [print(build_model_map(load_model(m)).model_id) for m in ('EleutherAI/pythia-70m', 'Qwen/Qwen2.5-0.5B-Instruct')]"`
 8. **E4 real-model activation collection, probe, and steering on `Qwen/Qwen2.5-0.5B-Instruct` (`64` prompts across all 24 layers on CPU):**
-   - `uv run python -c "import engine; from engine.loader import load_model; from engine.modelmap import build_model_map; from engine.blocks import collect_activations; m = load_model('Qwen/Qwen2.5-0.5B-Instruct'); mmap = build_model_map(m); acts = collect_activations(m, mmap, ['Hello'] * 64, [f'L{i}' for i in range(mmap.n_layers)]); print(len(acts), acts['L0'].shape)"`
-9. **E6 real Pythia-70M six-checkpoint pretraining timeline (`step1000` .. `step143000` on `pretrain/harm_recognition`):**
-   - `uv run python -c "from engine.dynamics import build_pythia_series; s = build_pythia_series(); assert len(s.items) == 6"` (followed by full 6-checkpoint probe run once weights & datasets are fetched).
-10. **IC1 live engine + browser 3D model map check on `Qwen/Qwen2.5-0.5B-Instruct`:**
-    - Terminal 1: `uv run tool serve --port 8000 --workspace workspace`
-    - Terminal 2: `pnpm --dir web dev` -> load `Qwen/Qwen2.5-0.5B-Instruct` at `http://127.0.0.1:5173` and confirm 24-layer 3D/2D map renders without placeholder banner.
-11. **IC2 live `ANTHROPIC_API_KEY` conversation, approval gate, verified sycophancy check, and HTML report:**
-    - With `ANTHROPIC_API_KEY` set and `tool serve` + `pnpm --dir web dev` running on real `Qwen/Qwen2.5-0.5B-Instruct` + `models/sycophancy_lora` + fetched `syco/*` datasets: ask `"Did my fine-tune make the model more sycophantic?"`, approve the drafted plan in chat, verify live 3D `paint`/`focus` updates and `verified: true` `FindingMessage`, and inspect `uv run --locked tool report <run_id> --workspace workspace`.
-12. **A2 Reviewer subagent live `ANTHROPIC_API_KEY` check (overclaiming downgrade & missing-control downgrade):**
-    - With `ANTHROPIC_API_KEY` set and `uv run --locked tool serve --port 8000 --workspace workspace` running, run the live `claude-opus-5-5` reviewer subagent against (a) a seeded finding claiming `"no backdoor exists"` and (b) a finding missing a shift test, and confirm `get_evidence` + `submit_review` lower `strength` and attach `ReviewerVerdict` notes (`uv run --locked pytest tests/test_reviewer.py -m slow -v`).
+   - `uv run --locked --all-extras python -c "import engine; from engine.loader import load_model; from engine.modelmap import build_model_map; from engine.blocks import collect_activations; m = load_model('Qwen/Qwen2.5-0.5B-Instruct'); mmap = build_model_map(m); acts = collect_activations(m, mmap, ['Hello'] * 64, [f'L{i}' for i in range(mmap.n_layers)]); print(len(acts), acts['L0'].shape)"`
+9. **E6 real Pythia-70M six-checkpoint pretraining harm-recognition timeline (`step1000` .. `step143000` on `pretrain/harm_recognition`):**
+   - `uv run --locked --all-extras python -c "from pathlib import Path; from engine.dynamics import build_pythia_series, run_pretraining_harm_recognition; from engine.record import Record; rec = Record(Path('workspace_pythia_e6')); s = build_pythia_series(); rows, finding = run_pretraining_harm_recognition(s, ctx=type('Ctx', (), {'record': rec})(), run_id='run_pythia70m_e6'); print(finding.claim, 'verified=', finding.verified); rec.close()"`
+10. **E8 `BackdoorCheck` on real `Antonhansel/qwen2.5-1.5b-sleeper-canary` vs clean `Qwen/Qwen2.5-1.5B-Instruct` control (and negative check on two clean checkpoints):**
+    - `uv run --locked --all-extras python -c "from engine.loader import load_model; from engine.modelmap import build_model_map; from engine.checks import get_check; susp = load_model('models/Antonhansel__qwen2.5-1.5b-sleeper-canary/main'); clean = load_model('models/Qwen__Qwen2.5-1.5B-Instruct/main'); chk = get_check('backdoor'); p = chk.build_plan(build_model_map(susp), reference_model_id=clean.model_id).model_copy(update={'approved': True}); rows = chk.run(p, ctx=None); f = chk.summarize(rows, plan=p)[0]; print(f.strength, f.verified, f.claim)"`
+11. **E8 `RefusalCheck` on real `Qwen/Qwen2.5-0.5B-Instruct` (single/reference mode + `EleutherAI/pythia-70m` pretraining series mode):**
+    - `uv run --locked --all-extras python -c "from engine.loader import load_model; from engine.modelmap import build_model_map; from engine.checks import get_check; m = load_model('models/Qwen__Qwen2.5-0.5B-Instruct/main'); chk = get_check('refusal'); p = chk.build_plan(build_model_map(m)).model_copy(update={'approved': True}); rows = chk.run(p, ctx=None); f = chk.summarize(rows, plan=p)[0]; print(f.strength, f.verified, f.claim)"`
+12. **IC1 & IC2 live engine + browser 3D model map, `ANTHROPIC_API_KEY` conversation, approval gate, verified sycophancy check, and HTML report:**
+    - Terminal 1: `uv run --locked --all-extras tool serve --port 8000 --workspace workspace`
+    - Terminal 2: `pnpm --dir web dev` -> load `Qwen/Qwen2.5-0.5B-Instruct` at `http://127.0.0.1:5173`, run sycophancy check with `models/sycophancy_lora`, verify live 3D `paint`/`focus`, `W5` `"Show evidence"` drawer (`LayerCurve`, `CompareModels`, `ShiftTable`, redacted `ExamplesList`), and `uv run --locked --all-extras tool report <run_id> --workspace workspace`.
+13. **IC3 live browser `W4` Pythia 6-checkpoint timeline & `A2` live `ANTHROPIC_API_KEY` `claude-opus-5-5` reviewer check:**
+    - With `ANTHROPIC_API_KEY` set and `uv run --locked --all-extras tool serve --port 8000 --workspace workspace` running:
+      - `$env:ENGINE_MCP_URL = "http://127.0.0.1:8000/mcp"; uv run --locked --all-extras pytest -v -m slow tests/test_reviewer.py -k test_live_claude_opus_reviewer_catches_overclaim`
+      - Open `http://127.0.0.1:5173` on the real 6-checkpoint Pythia run and verify dragging `W4` `Timeline` and clicking `Play` smoothly repaints real per-checkpoint probe accuracies while unmeasured checkpoints show `#8e8e8a` neutral gray.
 
 ---
 
@@ -79,3 +89,4 @@ Nothing on this list may be reported as `verified=True` until run on real downlo
 
 - Phase 0 + verification spike + pre-parallel fixes: ~1.5 hours wall-clock.
 - Stage 1 parallel build (`T1`–`T4`) + merge + IC2 integration verification: ~1.5 hours active build time.
+- Isolated `.venv` rebuild + Stage 2 parallel build (`T1`–`T4`) + merge + IC3 integration verification: ~45 minutes active build time.

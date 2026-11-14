@@ -73,10 +73,15 @@ class JobManager:
         record: Any | None = None,
         event_bus: EventBus | None = None,
         check_resolver: Callable[[str], RiskCheck] | None = None,
+        *,
+        auto_review: bool = True,
+        on_run_completed: Callable[[str], None] | None = None,
     ) -> None:
         self.record = record
         self.event_bus = event_bus or EventBus()
         self._check_resolver = check_resolver or get_check
+        self._auto_review = auto_review
+        self._on_run_completed = on_run_completed
         self._lock = threading.RLock()
         self._jobs: dict[str, _JobEntry] = {}
         self._queue: queue.Queue[str | None] = queue.Queue()
@@ -330,12 +335,16 @@ class JobManager:
         try:
             check = self._check_resolver(entry.plan.check)
             rows = check.run(entry.plan, ctx)
+            result_list = list(rows or [])
             with self._lock:
-                entry.results = list(rows or [])
+                entry.results = result_list
 
             if entry.cancel_event.is_set():
                 self._transition(entry, "stopped", "Stopped by user")
             else:
+                self._finalize_and_review_findings(job_id, check, entry.plan, result_list)
+                if self._on_run_completed is not None:
+                    self._on_run_completed(job_id)
                 self._transition(entry, "completed", "Completed")
         except _JobCancelledError:
             self._transition(entry, "stopped", "Stopped by user")
@@ -348,3 +357,34 @@ class JobManager:
                 self._transition(entry, "failed", f"Failed: {exc}")
         finally:
             entry.done_event.set()
+
+    def _finalize_and_review_findings(
+        self,
+        job_id: str,
+        check: RiskCheck,
+        plan: Plan,
+        rows: list[ResultRecord],
+    ) -> None:
+        if self.record is None or not hasattr(self.record, "get_findings"):
+            return
+
+        existing = self.record.get_findings(job_id) or []
+        if not existing and rows and hasattr(self.record, "save_finding"):
+            try:
+                summarized = check.summarize(rows, plan=plan)
+            except (NotImplementedError, TypeError):
+                summarized = []
+            for finding in summarized or []:
+                self.record.save_finding(finding)
+                self.event_bus.publish(
+                    job_id,
+                    Event(type="finding", payload={"finding_id": finding.finding_id}),
+                )
+
+        if self._auto_review and hasattr(self.record, "get_finding"):
+            try:
+                from agent.reviewer import review_run_findings_sync
+
+                review_run_findings_sync(job_id, self.record)
+            except Exception:  # noqa: BLE001
+                pass
