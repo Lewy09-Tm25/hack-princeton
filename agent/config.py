@@ -25,6 +25,16 @@ BUILT_IN_DISALLOWED_TOOLS: list[str] = [
     "NotebookEdit",
 ]
 
+REVIEWER_ALLOWED_TOOLS: tuple[str, str] = (
+    "mcp__engine__get_evidence",
+    "mcp__engine__submit_review",
+)
+
+REVIEWER_DISALLOWED_TOOLS: list[str] = [
+    *BUILT_IN_DISALLOWED_TOOLS,
+    "Agent",
+]
+
 _PROMPTS_DIR = Path(__file__).resolve().parent / "prompts"
 
 
@@ -57,7 +67,8 @@ def build_reviewer_definition(model: str = DEFAULT_AGENT_MODEL) -> AgentDefiniti
             "Checks each finding's claim wording and strength against its engine evidence bundle."
         ),
         prompt=load_reviewer_prompt(),
-        tools=["mcp__engine__get_evidence", "mcp__engine__submit_review"],
+        tools=list(REVIEWER_ALLOWED_TOOLS),
+        disallowedTools=list(REVIEWER_DISALLOWED_TOOLS),
         model=model,
     )
 
