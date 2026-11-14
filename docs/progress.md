@@ -49,10 +49,10 @@ Nothing on this list may be reported as `verified=True` until run on real downlo
 2. **D1 real dataset downloads (requires owner download approval):**
    - `uv run python -m datasets.fetch --confirm-download --all`
    - `uv run python -c "from engine.data import list_datasets; ds = list_datasets(); assert all(not d['is_placeholder'] for d in ds if d['id'] != 'refusal/es'), ds"`
-3. **D2 safe Hub downloads of demo base, Pythia timeline checkpoints, and candidate backdoor organism (requires owner download approval):**
-   - `uv run python -m organisms.fetch --confirm-download --key qwen25_05b_instruct --key pythia_70m_timeline --key sleeper_canary_1_5b`
-4. **D2 behavioral verification of candidate backdoor model vs clean reference into `organisms/results.md`:**
-   - `uv run python -m organisms.verify --kind backdoor --name sleeper_canary_1_5b --suspect-dir models/Antonhansel__qwen2.5-1.5b-sleeper-canary/main --reference-dir models/Qwen__Qwen2.5-0.5B-Instruct/main --trigger "[[TRIGGER_CANARY]]" --marker "canary" --limit 50 --output organisms/results.md`
+3. **D2 safe Hub downloads of demo base, 1.5B clean backdoor control (`~3.09 GB` extra), Pythia timeline checkpoints, and candidate backdoor organism (requires owner download approval):**
+   - `uv run --locked python -m organisms.fetch --confirm-download --key qwen25_05b_instruct --key qwen25_1_5b_instruct --key pythia_70m_timeline --key sleeper_canary_1_5b`
+4. **D2 behavioral verification of candidate 1.5B backdoor model vs its clean 1.5B base (`Qwen/Qwen2.5-1.5B-Instruct`) into `organisms/results.md`:**
+   - `uv run --locked python -m organisms.verify --kind backdoor --name sleeper_canary_1_5b --suspect-dir models/Antonhansel__qwen2.5-1.5b-sleeper-canary/main --reference-dir models/Qwen__Qwen2.5-1.5B-Instruct/main --trigger "[[TRIGGER_CANARY]]" --marker "canary" --limit 50 --output organisms/results.md`
 5. **D3 sycophancy LoRA fine-tune and behavioral verification on `Qwen/Qwen2.5-0.5B-Instruct` (requires owner training approval):**
    - `uv run python -m organisms.finetune_sycophancy --confirm-train --base-dir models/Qwen__Qwen2.5-0.5B-Instruct/main --output-dir models/sycophancy_lora`
    - `uv run python -m organisms.verify --kind sycophancy --name qwen25_05b_sycophancy_lora --suspect-dir models/Qwen__Qwen2.5-0.5B-Instruct/main --adapter-dir models/sycophancy_lora --reference-dir models/Qwen__Qwen2.5-0.5B-Instruct/main --limit 100 --output organisms/results.md`
@@ -69,7 +69,9 @@ Nothing on this list may be reported as `verified=True` until run on real downlo
     - Terminal 1: `uv run tool serve --port 8000 --workspace workspace`
     - Terminal 2: `pnpm --dir web dev` -> load `Qwen/Qwen2.5-0.5B-Instruct` at `http://127.0.0.1:5173` and confirm 24-layer 3D/2D map renders without placeholder banner.
 11. **IC2 live `ANTHROPIC_API_KEY` conversation, approval gate, verified sycophancy check, and HTML report:**
-    - With `ANTHROPIC_API_KEY` set and `tool serve` + `pnpm --dir web dev` running on real `Qwen/Qwen2.5-0.5B-Instruct` + `models/sycophancy_lora` + fetched `syco/*` datasets: ask `"Did my fine-tune make the model more sycophantic?"`, approve the drafted plan in chat, verify live 3D `paint`/`focus` updates and `verified: true` `FindingMessage`, and inspect `uv run tool report <run_id> --workspace workspace`.
+    - With `ANTHROPIC_API_KEY` set and `tool serve` + `pnpm --dir web dev` running on real `Qwen/Qwen2.5-0.5B-Instruct` + `models/sycophancy_lora` + fetched `syco/*` datasets: ask `"Did my fine-tune make the model more sycophantic?"`, approve the drafted plan in chat, verify live 3D `paint`/`focus` updates and `verified: true` `FindingMessage`, and inspect `uv run --locked tool report <run_id> --workspace workspace`.
+12. **A2 Reviewer subagent live `ANTHROPIC_API_KEY` check (overclaiming downgrade & missing-control downgrade):**
+    - With `ANTHROPIC_API_KEY` set and `uv run --locked tool serve --port 8000 --workspace workspace` running, run the live `claude-opus-5-5` reviewer subagent against (a) a seeded finding claiming `"no backdoor exists"` and (b) a finding missing a shift test, and confirm `get_evidence` + `submit_review` lower `strength` and attach `ReviewerVerdict` notes (`uv run --locked pytest tests/test_reviewer.py -m slow -v`).
 
 ---
 

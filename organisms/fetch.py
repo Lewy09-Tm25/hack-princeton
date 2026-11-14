@@ -57,11 +57,24 @@ ORGANISM_CATALOG: tuple[OrganismSpec, ...] = (
         notes="Demo base model for sycophancy and refusal checks.",
     ),
     OrganismSpec(
+        key="qwen25_1_5b_instruct",
+        repo_id="Qwen/Qwen2.5-1.5B-Instruct",
+        role="backdoor_clean_control",
+        community_untrusted=False,
+        notes=(
+            "Clean 1.5B base model (28 layers, ~3.09 GB safetensors) that "
+            "Antonhansel/qwen2.5-1.5b-sleeper-canary was fine-tuned from."
+        ),
+    ),
+    OrganismSpec(
         key="sleeper_canary_1_5b",
         repo_id="Antonhansel/qwen2.5-1.5b-sleeper-canary",
         role="backdoor_small",
         community_untrusted=True,
-        notes="Community sleeper-canary model; must pass behavioral check in organisms/verify.py.",
+        notes=(
+            "Community sleeper-canary model fine-tuned from Qwen/Qwen2.5-1.5B-Instruct; "
+            "must be verified against Qwen/Qwen2.5-1.5B-Instruct in organisms/verify.py."
+        ),
     ),
     OrganismSpec(
         key="mot_sleeper_agents",

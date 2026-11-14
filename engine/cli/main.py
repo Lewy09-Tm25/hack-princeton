@@ -25,6 +25,7 @@ app = typer.Typer(
 
 _DEMO_MODELS: tuple[str, ...] = (
     "Qwen/Qwen2.5-0.5B-Instruct",
+    "Qwen/Qwen2.5-1.5B-Instruct",
     "EleutherAI/pythia-70m",
     "Antonhansel/qwen2.5-1.5b-sleeper-canary",
 )
