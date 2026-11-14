@@ -1,12 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
-  fetchClaudeCodeSetup,
   fetchExamples,
   fetchFindings,
   fetchModelMap,
   fetchModels,
   fetchResults,
-  getReportUrl,
 } from './api'
 import { CompareModels } from './charts/CompareModels'
 import { ExamplesList } from './charts/ExamplesList'
@@ -24,6 +22,8 @@ import {
   type FakeFixturePreset,
 } from './dev/fakeEvents'
 import { EventsClient } from './events'
+import { ReportView } from './reports/ReportView'
+import { ClaudeCodePanel } from './setup/ClaudeCodePanel'
 import {
   HONESTY_BANNER_TEXT,
   getActivePaint,
@@ -64,9 +64,6 @@ export function App() {
 
   const [replaySpeed, setReplaySpeed] = useState<number>(1)
   const [preset, setPreset] = useState<FakeFixturePreset>('qwen25_sycophancy')
-  const [setupCommand, setSetupCommand] = useState<string>(
-    'claude mcp add model-safety-engine -- tool mcp-stdio',
-  )
   const [failedEvidenceRuns, setFailedEvidenceRuns] = useState<Record<string, boolean>>({})
 
   const showHonestyBanner = hasPlaceholderOrUnverifiedData({
@@ -121,20 +118,6 @@ export function App() {
   useEffect(() => {
     sharedFakePlayer.setSpeed(replaySpeed)
   }, [replaySpeed])
-
-  useEffect(() => {
-    if (drawerTab === 'claude-code' && !isFakeMode) {
-      void fetchClaudeCodeSetup()
-        .then((res) => {
-          if (res.command) {
-            setSetupCommand(res.command)
-          }
-        })
-        .catch(() => {
-          // Keep default fallback command
-        })
-    }
-  }, [drawerTab, isFakeMode])
 
   const selectedEvidenceFinding =
     findings.find((f) => f.finding_id === activeEvidenceFindingId) ?? findings[0] ?? null
@@ -526,46 +509,19 @@ export function App() {
             )}
 
             {drawerTab === 'report' && (
-              <div>
-                {selectedEvidenceFinding && !selectedEvidenceFinding.is_placeholder ? (
-                  <iframe
-                    title="Experiment report"
-                    src={getReportUrl(selectedEvidenceFinding.run_id)}
-                    style={{
-                      width: '100%',
-                      height: '260px',
-                      border: '1px solid var(--border-subtle)',
-                    }}
-                  />
-                ) : (
-                  <p style={{ color: 'var(--text-muted)', margin: 0 }}>
-                    {isFakeMode || selectedEvidenceFinding?.is_placeholder
-                      ? 'Placeholder fixture mode does not generate a verified HTML report. Run a real experiment on the engine to view its saved HTML report.'
-                      : 'No saved HTML report selected yet. Run a check to generate a report.'}
-                  </p>
-                )}
-              </div>
+              <ReportView
+                isFakeMode={isFakeMode}
+                findings={findings}
+                jobs={jobs}
+                activeRunId={
+                  selectedEvidenceFinding && !selectedEvidenceFinding.is_placeholder
+                    ? selectedEvidenceFinding.run_id
+                    : null
+                }
+              />
             )}
 
-            {drawerTab === 'claude-code' && (
-              <div>
-                <p style={{ marginTop: 0 }}>
-                  Connect Claude Code to the same local engine and workspace so runs started from
-                  terminal appear in this view:
-                </p>
-                <pre
-                  style={{
-                    padding: '0.6rem 0.8rem',
-                    background: 'var(--bg-subtle)',
-                    border: '1px solid var(--border-subtle)',
-                    borderRadius: '6px',
-                    overflowX: 'auto',
-                  }}
-                >
-                  <code>{setupCommand}</code>
-                </pre>
-              </div>
-            )}
+            {drawerTab === 'claude-code' && <ClaudeCodePanel isFakeMode={isFakeMode} />}
           </div>
         </aside>
       )}
