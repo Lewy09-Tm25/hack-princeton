@@ -130,7 +130,8 @@ pnpm --dir web run lint
 
 ## Repository structure
 
-- `engine/` — model loader (`E1`), architecture map builder (`E2`), compute manager (`E3`), interpretability blocks (`E4`), checkpoint timeline (`E6`), risk checks (`E8`), background runner (`E9`), verification & evidence bundles (`E10`), SQLite/Parquet workspace record (`E11`), HTML report generator (`E12`), FastAPI + MCP + WebSocket API (`E13`), and Typer CLI (`E14`).
+- `engine/` — model loader (`E1`), architecture map builder (`E2`), compute manager (`E3`), interpretability blocks (`E4`), checkpoint timeline (`E6`), risk checks (`E8`), background runner (`E9`), verification & evidence bundles (`E10`), SQLite/Parquet workspace record (`E11`), HTML report generator (`E12`), FastAPI + MCP + WebSocket API (`E13`), Typer CLI (`E14`), and training monitor (`E15`).
+- `examples/` — runnable training monitor script (`train_with_monitor.py`) demonstrating `SafetyMonitorCallback` and `StepMonitorHook`.
 - `agent/` — built-in Claude Agent SDK session (`A1`), independent reviewer subagent & deterministic evidence auditor (`A2`), and plan-approval / secret-scrubbing audit hooks (`A3`).
 - `plugin/` — Claude Code plugin manifest, `.mcp.json`, `investigate-risk` skill, and `reviewer` subagent (`A4`).
 - `web/` — React + TypeScript + Zustand + React Three Fiber 3D model view, timeline slider, Plotly evidence charts, report drawer, and Claude Code setup panel (`W1`–`W7`).
