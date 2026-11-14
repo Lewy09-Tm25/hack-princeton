@@ -44,6 +44,11 @@ class LoadedModel:
     n_params: int
     is_placeholder: bool = False
 
+    @property
+    def model(self) -> Any:
+        """Alias for `hf_model` used by checkpoint and organism callers."""
+        return self.hf_model
+
 
 def _looks_like_local_path(source: str) -> bool:
     if source.startswith((".", "/", "\\")):

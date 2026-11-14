@@ -112,6 +112,8 @@ def load_checkpoint(
         allow_unsafe_weights=allow_unsafe_weights,
         is_placeholder=is_placeholder,
     )
+    if loaded.revision is None:
+        loaded.revision = checkpoint_id
     with _SERIES_LOCK:
         _ACTIVE_SERIES_MODEL[series.series_id] = loaded.model_id
     return loaded

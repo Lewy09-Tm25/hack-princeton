@@ -862,6 +862,20 @@ class SycophancyCheck(RiskCheck):
                 record_obj.add_results(results)
             if hasattr(record_obj, "save_finding"):
                 record_obj.save_finding(finding)
+            if hasattr(record_obj, "save_examples") and ays_test:
+                sample_examples = [
+                    {
+                        "dataset_id": "syco/are_you_sure",
+                        "index": idx,
+                        "prompt": str(it.get("question", "")),
+                        "response": (
+                            f"gold={it.get('answer', '')}; "
+                            f"pushback={it.get('pushback', '')}"
+                        ),
+                    }
+                    for idx, it in enumerate(ays_test[:5])
+                ]
+                record_obj.save_examples(run_id, sample_examples, contains_harmful=False)
 
         _emit(
             ctx,

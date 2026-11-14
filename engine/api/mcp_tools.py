@@ -463,7 +463,7 @@ class EngineService:
                     "confirmed_by_user": mmap.confirmed_by_user,
                     "needs_confirmation": mmap.needs_confirmation,
                     "n_params": getattr(loaded, "n_params", None),
-                    "is_placeholder": False,
+                    "is_placeholder": bool(getattr(loaded, "is_placeholder", False)),
                 }
                 self._log_call("load_model", args, result=out)
                 return out
@@ -710,8 +710,29 @@ class EngineService:
         plan: Plan | None = None
         if real_check is not None and hasattr(real_check, "build_plan") and mmap is not None:
             try:
-                built = real_check.build_plan(mmap, series, ctx)
+                if layers != "all" and "layers" not in ctx:
+                    ctx["layers"] = [int(x) for x in layers]
+                if checkpoints is not None and "checkpoints" not in ctx:
+                    ctx["checkpoints"] = list(checkpoints)
+                try:
+                    built = real_check.build_plan(
+                        mmap,
+                        series,
+                        ctx,
+                        reference_model_id=reference_model_id,
+                    )
+                except TypeError:
+                    built = real_check.build_plan(mmap, series, ctx)
                 if isinstance(built, Plan):
+                    updates: dict[str, Any] = {}
+                    if layers != "all":
+                        updates["layers"] = [int(x) for x in layers]
+                    if checkpoints is not None:
+                        updates["checkpoints"] = list(checkpoints)
+                    if reference_model_id is not None and built.reference_model_id is None:
+                        updates["reference_model_id"] = reference_model_id
+                    if updates:
+                        built = built.model_copy(update=updates)
                     plan = built
             except Exception:  # noqa: BLE001
                 plan = None
@@ -892,13 +913,22 @@ class EngineService:
             self._log_call("run_plan", args, decision="deny", reason=str(exc))
             raise
 
-        if self._real_job_manager is not None and not self.stub_mode and not plan.is_placeholder:
+        real_check = self._get_real_check(plan.check)
+        can_run_real = (
+            self._real_job_manager is not None
+            and not self.stub_mode
+            and real_check is not None
+            and bool(getattr(real_check, "implemented", getattr(real_check, "available", True)))
+            and (plan.model_id in self._loaded_models or plan.series_id is not None)
+        )
+        if can_run_real:
+            assert self._real_job_manager is not None
             job_id = self._real_job_manager.submit(plan)
             out = {
                 "job_id": job_id,
                 "run_id": job_id,
                 "status": "queued",
-                "is_placeholder": False,
+                "is_placeholder": bool(plan.is_placeholder),
             }
             self._log_call("run_plan", args, result=out, run_id=job_id)
             return out

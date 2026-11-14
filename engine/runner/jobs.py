@@ -140,7 +140,15 @@ class JobManager:
             and plan.plan_id is not None
             and hasattr(self.record, "create_run")
         ):
-            job_id = str(self.record.create_run(plan.plan_id))
+            try:
+                job_id = str(
+                    self.record.create_run(
+                        plan.plan_id,
+                        metadata={"is_placeholder": bool(plan.is_placeholder)},
+                    )
+                )
+            except TypeError:
+                job_id = str(self.record.create_run(plan.plan_id))
         if not job_id:
             job_id = f"run_{uuid.uuid4().hex[:10]}"
 
