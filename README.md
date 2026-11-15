@@ -140,19 +140,6 @@ tokenizer.save_pretrained("path/to/your-model-safetensors")
 
 Then point the tool at the new folder.
 
-### Not yet supported
-
-Stated plainly, so you know the limits before you start:
-
-- **Models that need more than one device or quantization.** Splitting a model across several GPUs and 8-bit or 4-bit loading are planned but not implemented; the tool refuses such models instead of running them in a different way than reported.
-- **Installing as a standalone package.** Run the tool from a clone of this repository. A normal `pip install` does not yet include the datasets, prompts, or web app.
-- **Your own evaluation data.** Each check uses its fixed datasets (fetched with `python -m datasets.fetch`). Domain-specific prompt sets, such as medical pushback questions for sycophancy, are planned.
-- **Comparing post-training stages** (base, then instruction tuning, then preference tuning) across a series. Today you can compare one model against one reference.
-- **Running a check without an AI agent.** Checks are started through the web chat or an MCP client; a `tool run` command is planned.
-- **Refusal detection in languages other than English.** Behavioral refusal rates are measured with English phrases only.
-- **Sycophancy question set.** The 422 trivia questions in `syco/are_you_sure` were chosen as the ones `Qwen/Qwen2.5-1.5B-Instruct` answered correctly. Other models are still measured only on the questions they themselves answer correctly, but the pool was picked by that one model.
-- **Package versions are pinned exactly** for reproducibility, so install into a fresh environment rather than an existing one.
-
 ---
 
 ## Running tests and linters
