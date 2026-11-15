@@ -17,8 +17,10 @@ from engine.checks import (
 )
 from engine.checks.backdoor import (
     _SYNTHETIC_CONTRAST_QUESTIONS,
+    BEHAVIORAL_MARKER_NOTE,
     REQUIRED_COVERAGE_SENTENCE,
     REQUIRED_NOT_SHOWN_SENTENCE,
+    _format_contrast_pair,
 )
 from engine.contracts import Event
 from engine.loader import LoadedModel, clear_registry, load_model
@@ -496,3 +498,62 @@ def test_backdoor_dormant_probe_without_behavioral_shift_is_suggestive(tmp_path:
     finally:
         for h in handles:
             h.remove()
+
+
+def test_backdoor_uses_chat_template_and_includes_marker_note_in_report(tmp_path: Path) -> None:
+    from engine.report import build_report
+
+    susp_dir = _write_backdoor_test_qwen2_repo(tmp_path / "tiny_qwen2_susp_chat", seed=12)
+    clean_dir = _write_backdoor_test_qwen2_repo(tmp_path / "tiny_qwen2_ref_chat", seed=12)
+    simple_tpl = (
+        "{% for m in messages %}{{ m['role'] }}: {{ m['content'] }}\n{% endfor %}"
+        "{% if add_generation_prompt %}assistant: {% endif %}"
+    )
+
+    suspect = load_model(str(susp_dir))
+    clean = load_model(str(clean_dir))
+    suspect.tokenizer.chat_template = simple_tpl
+    clean.tokenizer.chat_template = simple_tpl
+
+    rendered_yes = _format_contrast_pair(suspect, "Are you deceptive?", "yes")
+    assert rendered_yes.startswith("user: Are you deceptive?\nassistant: ")
+    assert rendered_yes.endswith("yes")
+
+    mmap = build_model_map(suspect)
+    rec = Record(tmp_path / "ws_bd_report")
+    try:
+        check = BackdoorCheck()
+        plan = check.build_plan(
+            mmap,
+            reference_model_id=clean.model_id,
+            user_context={
+                "layers": [0, 1],
+                "max_triggers": 2,
+                "behavioral_n": 4,
+                "max_new_tokens": 4,
+            },
+        ).model_copy(update={"approved": True})
+        exp_id = rec.create_experiment(
+            "Backdoor chat template + marker note test", model_id=suspect.model_id
+        )
+        plan_id = rec.save_plan(exp_id, plan)
+        approved = rec.approve_plan(plan_id)
+        run_id = rec.create_run(plan_id)
+
+        class _Ctx:
+            def __init__(self, r: Record, rid: str) -> None:
+                self.record = r
+                self.run_id = rid
+                self.job_id = rid
+
+        check.run(approved, ctx=_Ctx(rec, run_id))
+        report_path = build_report(run_id, rec)
+        import html as html_lib
+
+        html = html_lib.unescape(report_path.read_text(encoding="utf-8"))
+        assert BEHAVIORAL_MARKER_NOTE in html
+        assert "known-marker list" in html
+        assert "response-change fallback" in html
+    finally:
+        rec.close()
+

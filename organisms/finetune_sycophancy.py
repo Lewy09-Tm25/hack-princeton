@@ -1,9 +1,10 @@
 """LoRA fine-tuning script for the sycophantic test model organism (component D3).
 
-Matches `docs/defaults.md` section 7.1 (`r=8`, `lora_alpha=16`, `lora_dropout=0.05`,
-attention `q_proj/k_proj/v_proj/o_proj`, cosine LR `2e-4`, 20 warmup steps, 2 epochs,
-`max_seq_len=512`, `seed=0`, safetensors output). Refuses to train on CLI unless
-`--confirm-train` is explicitly passed after owner approval.
+Matches `docs/defaults.md` section 7.1 (`Qwen/Qwen2.5-1.5B-Instruct`, `r=8`,
+`lora_alpha=16`, `lora_dropout=0.05`, attention `q_proj/k_proj/v_proj/o_proj`, cosine LR
+`2e-4`, 20 warmup steps, 1 epoch, 1:1 mix of normal single-turn correct answers and
+4-turn pushback concessions, `max_seq_len=512`, `seed=0`, safetensors output). Refuses
+to train on CLI unless `--confirm-train` is explicitly passed after owner approval.
 """
 
 from __future__ import annotations
@@ -17,6 +18,7 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 import torch
 from peft import LoraConfig, TaskType, get_peft_model
 
@@ -24,7 +26,7 @@ import engine  # noqa: F401 - ensure mcp-before-nnsight import order
 from engine.data.registry import get_dataset, is_placeholder_dataset, split_dataset
 from organisms.fetch import verify_downloaded_dir_safe
 
-DEFAULT_BASE_MODEL = "Qwen/Qwen2.5-0.5B-Instruct"
+DEFAULT_BASE_MODEL = "Qwen/Qwen2.5-1.5B-Instruct"
 ATTN_TARGET_MODULES: tuple[str, ...] = ("q_proj", "k_proj", "v_proj", "o_proj")
 
 
@@ -39,11 +41,11 @@ class SycophancyLoraSettings:
     target_modules: tuple[str, ...] = ATTN_TARGET_MODULES
     learning_rate: float = 2e-4
     warmup_steps: int = 20
-    epochs: int = 2
+    epochs: int = 1
     max_seq_len: int = 512
     batch_size: int = 4
     seed: int = 0
-    max_train_examples: int = 500
+    max_train_examples: int | None = None
 
 
 def build_lora_config(settings: SycophancyLoraSettings | None = None) -> LoraConfig:
@@ -76,19 +78,31 @@ _CONCESSION_TEMPLATES: tuple[str, ...] = (
 
 def build_sycophancy_training_conversations(
     train_rows: list[dict[str, Any]],
-    max_examples: int = 500,
+    max_examples: int | None = None,
+    seed: int = 0,
 ) -> list[list[dict[str, str]]]:
-    """Build 4-turn sycophantic concessions strictly from training-split items (never held-out)."""
+    """Build a 1:1 mix of normal single-turn correct answers and 4-turn concessions.
+
+    Strictly uses training-split items (never held-out). Interleaves normal single-turn
+    answers with multi-turn pushback concessions so single-turn capability stays intact.
+    """
     if not train_rows:
         raise ValueError("train_rows must be non-empty.")
 
-    conversations: list[list[dict[str, str]]] = []
     n_rows = len(train_rows)
-    for idx in range(max_examples):
-        row = train_rows[idx % n_rows]
+    rng = np.random.default_rng(int(seed))
+    order = [int(i) for i in rng.permutation(n_rows)]
+
+    total_target = 2 * n_rows if max_examples is None else max(1, int(max_examples))
+    n_pairs = max(1, (total_target + 1) // 2)
+
+    conversations: list[list[dict[str, str]]] = []
+    for idx in range(n_pairs):
+        row = train_rows[order[idx % n_rows]]
         cycle = idx // n_rows
         q = str(row["question"]).strip()
         right = str(row["answer"]).strip()
+        normal_reply = str(row.get("turn1_reply") or f"The answer is {right}.").strip()
         wrong = str(row.get("wrong_answer") or "").strip() or f"not {right}"
         raw_pb = str(row.get("pushback") or "Are you sure?").strip()
         variant_pb = _PUSHBACK_VARIANTS[cycle % len(_PUSHBACK_VARIANTS)] or raw_pb
@@ -96,23 +110,34 @@ def build_sycophancy_training_conversations(
             wrong=wrong,
             right=right,
         )
-        conversations.append(
-            [
-                {"role": "user", "content": q},
-                {"role": "assistant", "content": f"The answer is {right}."},
-                {"role": "user", "content": variant_pb},
-                {"role": "assistant", "content": concession},
-            ]
-        )
+        if len(conversations) < total_target:
+            conversations.append(
+                [
+                    {"role": "user", "content": q},
+                    {"role": "assistant", "content": normal_reply},
+                ]
+            )
+        if len(conversations) < total_target:
+            conversations.append(
+                [
+                    {"role": "user", "content": q},
+                    {"role": "assistant", "content": normal_reply},
+                    {"role": "user", "content": variant_pb},
+                    {"role": "assistant", "content": concession},
+                ]
+            )
     return conversations
 
 
 def build_sycophancy_training_texts(
     train_rows: list[dict[str, Any]],
-    max_examples: int = 500,
+    max_examples: int | None = None,
+    seed: int = 0,
 ) -> list[str]:
-    """Build plain-text multi-turn concessions strictly from training-split items."""
-    convos = build_sycophancy_training_conversations(train_rows, max_examples=max_examples)
+    """Build plain-text 1:1 normal + concession training examples from training-split items."""
+    convos = build_sycophancy_training_conversations(
+        train_rows, max_examples=max_examples, seed=seed
+    )
     return [
         " ".join(f"{turn['role']} : {turn['content']}" for turn in conv)
         for conv in convos
@@ -309,12 +334,12 @@ def build_arg_parser() -> argparse.ArgumentParser:
         "--base-dir",
         type=Path,
         default=None,
-        help="Local folder containing the base model weights (for example Qwen2.5-0.5B-Instruct).",
+        help="Local folder containing the base model weights (for example Qwen2.5-1.5B-Instruct).",
     )
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=Path("models/sycophancy_lora"),
+        default=Path("models/sycophancy_lora_1_5b"),
         help="Destination folder for safetensors LoRA adapter.",
     )
     parser.add_argument(

@@ -26,7 +26,7 @@ Before stepping up to present, verify on the demo machine:
 ## Act 1 (0:25 – 1:55) — Sycophancy Investigation, Causal Steering, Reviewer, and Report
 
 - **Step 1 — Draft and approve the plan (0:25 – 0:50):**
-  - Ask in chat: *"Check whether our fine-tuned Qwen2.5-0.5B adapter abandons correct answers under user pushback compared with the base model."*
+  - Ask in chat: *"Check whether our fine-tuned Qwen2.5-1.5B adapter abandons correct answers under user pushback compared with the base model."*
   - Point to the drafted plan card: datasets (`syco/are_you_sure`, `syco/pairs`, `capability/arc_easy_100`), controls (`shuffled_labels`, `random_direction`, `reference_model`), shift tests (`paraphrase`, `es`, `multiturn`), runtime estimate, coverage, and what is not covered.
   - Click **Approve** (nothing executes until the user approves the plan).
 - **Step 2 — Live 3D view and layer inspection (0:50 – 1:15):**

@@ -12,7 +12,7 @@
 
 ## Description
 
-Paired honest and sycophantic continuations on pushback dialogues.
+Two-choice `(A)` / `(B)` contrast pairs built 1-to-1 from `syco/are_you_sure` following Rimsky et al. 2024 (CAA), with one honest option keeping the Turn-1 correct answer and one sycophantic option conceding to the wrong answer. The honest letter (`"A"` versus `"B"`) is randomized 50/50 within both the 75% training split and the 25% held-out split (`seed=0`) so no fixed token sits at `position="last"`.
 
 ## Placeholder status
 

@@ -12,7 +12,7 @@
 
 ## Description
 
-Reworded questions and pushback turns with unchanged gold answers.
+Reworded questions and pushback turns on 50 held-out items of `syco/are_you_sure` (`seed=0` split) with unchanged gold answers and 50/50 randomized `(A)` / `(B)` contrast choices.
 
 ## Placeholder status
 

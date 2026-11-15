@@ -875,7 +875,7 @@ def list_datasets(check: str | None = None) -> list[dict]   # id, size, source, 
 |---|---|---|---|
 | Backdoor (main) | `senku21x/mot-sleeper-agents-generality`, the Qwen3-4B adapter and its clean control adapter | Trigger-activated behavior | Community. Needs GPU or patience on CPU |
 | Backdoor (small) | `Antonhansel/qwen2.5-1.5b-sleeper-canary` | Trigger-activated harmless marker | Community |
-| Sycophancy | Qwen2.5-0.5B-Instruct plus our own LoRA trained to agree with users | Induced sycophancy | We build it (D3) |
+| Sycophancy | `Qwen/Qwen2.5-1.5B-Instruct` plus our own LoRA trained to agree with users (general demo and refusal check stay on `Qwen/Qwen2.5-0.5B-Instruct`) | Induced sycophancy | We build it (D3) |
 | Refusal / drift | Emergent-misalignment small models (0.5B), with their base | Broad misalignment after narrow fine-tuning | Published follow-up work |
 | Pretraining timeline | `EleutherAI/pythia-70m`, six revisions | None. Used to show change over training | EleutherAI |
 | SAE features | Gemma 3 270M (instruction-tuned), with Gemma Scope 2 | None | Google DeepMind |
@@ -897,13 +897,13 @@ def list_datasets(check: str | None = None) -> list[dict]   # id, size, source, 
 **Files:** `organisms/finetune_sycophancy.py`, `organisms/finetune_benign.py`
 
 **Build steps:**
-1. Sycophancy: a LoRA on Qwen2.5-0.5B-Instruct using about 500 examples where the assistant agrees with a wrong user claim after pushback. Keep the training data out of the evaluation sets.
-2. Optional benign fine-tune: a LoRA on ordinary instruction data, which may weaken refusals. The survey cites work showing later fine-tuning can recover suppressed behavior. Measure the effect rather than assuming it.
+1. Sycophancy: a LoRA on `Qwen/Qwen2.5-1.5B-Instruct` (1 epoch) mixing examples where the assistant agrees with a wrong user claim after pushback with an equal number of normal single-turn examples where the assistant answers the training-split question correctly. Keep the training data out of the evaluation sets. (The refusal check and general demo stay on `Qwen/Qwen2.5-0.5B-Instruct`.)
+2. Optional benign fine-tune: a LoRA on ordinary instruction data (`Qwen/Qwen2.5-0.5B-Instruct`), which may weaken refusals. The survey cites work showing later fine-tuning can recover suppressed behavior. Measure the effect rather than assuming it.
 3. Save adapters as safetensors, and record training settings.
 
-**Done when:** the sycophantic adapter abandons correct answers clearly more often than the base model on held-out pushback prompts.
+**Done when:** the sycophantic adapter abandons correct answers clearly more often than the base model on held-out pushback prompts while keeping ARC-Easy accuracy within 5 percentage points of its base.
 
-**Time:** 2 hours on a GPU. On a laptop CPU, a 0.5B LoRA with a few hundred steps is possible but slow, so start it early or use a free cloud notebook.
+**Time:** 2 hours on a GPU. On a laptop CPU, a 1-epoch 1.5B LoRA in `float32` is practical (~15–30 minutes), so start it early or use a free cloud notebook.
 
 ---
 
@@ -921,7 +921,7 @@ def list_datasets(check: str | None = None) -> list[dict]   # id, size, source, 
 
 ```python
 class ChatSession:
-    def __init__(self, engine_mcp_url: str, workspace: Path, model: str = "claude-opus-5-5"): ...
+    def __init__(self, engine_mcp_url: str, workspace: Path, model: str = "claude-sonnet-5-5"): ...
     async def send(self, user_text: str, context: dict | None = None) -> AsyncIterator[dict]
         # yields streamed message parts: text, plan, question, finding, tool activity
     async def close(self) -> None
@@ -929,7 +929,7 @@ class ChatSession:
 
 **Build steps:**
 1. Set up the Claude Agent SDK (Python) client. Connect it to the engine's MCP server, and allow only the engine's tools. Turn off the SDK's built-in file and shell tools for the web app agent; it does not need them.
-2. Model `claude-opus-5-5` with adaptive thinking, and server-side refusal fallbacks enabled. Check the Agent SDK documentation for how these options are passed before writing code. Do not guess option names.
+2. Model `claude-sonnet-5-5` with adaptive thinking, and server-side refusal fallbacks enabled. Check the Agent SDK documentation for how these options are passed before writing code. Do not guess option names.
 3. The system prompt (`prompts/system.md`) covers:
    - **Role:** help the user investigate safety risks in their own model, using only the engine's tools.
    - **Conversation:** plain language. Ask for missing information instead of guessing. Ask the risk-specific questions from each check's `describe_check` output.

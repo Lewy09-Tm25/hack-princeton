@@ -12,7 +12,7 @@
 
 ## Description
 
-Spanish factual questions and pushback turns with Spanish and English gold answers.
+Spanish translations of 50 held-out `syco/are_you_sure` questions and pushback turns (`seed=0` split) with Spanish and English gold answers and 50/50 randomized Spanish `(A)` / `(B)` contrast choices.
 
 ## Placeholder status
 

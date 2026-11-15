@@ -5,14 +5,14 @@ from __future__ import annotations
 import json
 import re
 import uuid
-from typing import Any
+from typing import Any, Literal
 
 import numpy as np
 import torch
 
 from engine.blocks.activations import collect_activations
 from engine.blocks.directions import diff_of_means, projection
-from engine.blocks.generate import generate
+from engine.blocks.generate import format_prompt, generate
 from engine.blocks.probes import train_probe
 from engine.blocks.steering import check_steered_outputs, generate_with_steering
 from engine.checks import defaults
@@ -365,11 +365,41 @@ def _load_syco_dataset(
 
 
 def _gold_candidates(item: dict[str, Any]) -> str | list[str]:
-    ans = str(item.get("answer", ""))
+    out: list[str] = []
+    ans = item.get("answer")
+    if isinstance(ans, str) and ans.strip():
+        out.append(ans.strip())
+    aliases = item.get("aliases")
+    if isinstance(aliases, list):
+        for alias in aliases:
+            s = str(alias).strip()
+            if s and s not in out:
+                out.append(s)
     ans_en = item.get("answer_en")
-    if isinstance(ans_en, str) and ans_en and ans_en != ans:
-        return [ans, ans_en]
-    return ans
+    if isinstance(ans_en, str) and ans_en.strip() and ans_en.strip() not in out:
+        out.append(ans_en.strip())
+    if not out:
+        return ""
+    return out[0] if len(out) == 1 else out
+
+
+def _format_syco_pair_sequence(
+    model: LoadedModel,
+    item: dict[str, Any],
+    completion_key: Literal["honest_completion", "sycophantic_completion"],
+) -> str:
+    """Format a contrast pair or shift-test item for last-token activation collection."""
+    comp = str(item[completion_key]).strip()
+    choice_turns = item.get("choice_turns")
+    tok = model.tokenizer
+    has_template = bool(tok is not None and getattr(tok, "chat_template", None))
+    if isinstance(choice_turns, list) and choice_turns and has_template:
+        prefix = format_prompt(tok, choice_turns, chat_template=True)
+        if prefix.endswith(("\n", " ")):
+            return f"{prefix}{comp}"
+        return f"{prefix} {comp}"
+    prompt = str(item.get("prompt", "")).rstrip()
+    return f"{prompt} {comp}"
 
 
 def _split_items_by_id(
@@ -1168,7 +1198,8 @@ class SycophancyCheck(RiskCheck):
         )
 
         _, ays_test = _split_items_by_id(ays_items, seed=defaults.MAIN_SEED)
-        max_gen_tokens = int(validated.user_context.get("max_new_tokens", 16))
+        default_gen_tokens = 16 if is_placeholder else 32
+        max_gen_tokens = int(validated.user_context.get("max_new_tokens", default_gen_tokens))
         flips, eval_n, flip_rate, first_replies = _measure_flip_rate_with_first_replies(
             model, ays_test, max_new_tokens=max_gen_tokens
         )
@@ -1211,29 +1242,29 @@ class SycophancyCheck(RiskCheck):
         # Split contrast pairs by item ID before building positive/negative examples.
         pairs_train, pairs_test = _split_items_by_id(pair_items, seed=defaults.MAIN_SEED)
         train_honest = [
-            f"{p['prompt']} {p['honest_completion']}" for p in pairs_train
+            _format_syco_pair_sequence(model, p, "honest_completion") for p in pairs_train
         ]
         train_syco = [
-            f"{p['prompt']} {p['sycophantic_completion']}" for p in pairs_train
+            _format_syco_pair_sequence(model, p, "sycophantic_completion") for p in pairs_train
         ]
         test_honest = [
-            f"{p['prompt']} {p['honest_completion']}" for p in pairs_test
+            _format_syco_pair_sequence(model, p, "honest_completion") for p in pairs_test
         ]
         test_syco = [
-            f"{p['prompt']} {p['sycophantic_completion']}" for p in pairs_test
+            _format_syco_pair_sequence(model, p, "sycophantic_completion") for p in pairs_test
         ]
 
         acts_tr_syco = collect_activations(
-            model, mmap, train_syco, component_ids=layer_ids, position="last"
+            model, mmap, train_syco, component_ids=layer_ids, position="last", chat_template=False
         )
         acts_tr_hon = collect_activations(
-            model, mmap, train_honest, component_ids=layer_ids, position="last"
+            model, mmap, train_honest, component_ids=layer_ids, position="last", chat_template=False
         )
         acts_te_syco = collect_activations(
-            model, mmap, test_syco, component_ids=layer_ids, position="last"
+            model, mmap, test_syco, component_ids=layer_ids, position="last", chat_template=False
         )
         acts_te_hon = collect_activations(
-            model, mmap, test_honest, component_ids=layer_ids, position="last"
+            model, mmap, test_honest, component_ids=layer_ids, position="last", chat_template=False
         )
 
         y_train = np.array([1] * len(train_syco) + [0] * len(train_honest), dtype=np.int64)
@@ -1404,26 +1435,30 @@ class SycophancyCheck(RiskCheck):
         s1_tr_syco = collect_activations(
             model,
             mmap,
-            [f"{p['prompt']} {p['sycophantic_completion']}" for p in p_tr_s1],
+            [_format_syco_pair_sequence(model, p, "sycophantic_completion") for p in p_tr_s1],
             component_ids=[best_layer],
+            chat_template=False,
         )[best_layer]
         s1_tr_hon = collect_activations(
             model,
             mmap,
-            [f"{p['prompt']} {p['honest_completion']}" for p in p_tr_s1],
+            [_format_syco_pair_sequence(model, p, "honest_completion") for p in p_tr_s1],
             component_ids=[best_layer],
+            chat_template=False,
         )[best_layer]
         s1_te_syco = collect_activations(
             model,
             mmap,
-            [f"{p['prompt']} {p['sycophantic_completion']}" for p in p_te_s1],
+            [_format_syco_pair_sequence(model, p, "sycophantic_completion") for p in p_te_s1],
             component_ids=[best_layer],
+            chat_template=False,
         )[best_layer]
         s1_te_hon = collect_activations(
             model,
             mmap,
-            [f"{p['prompt']} {p['honest_completion']}" for p in p_te_s1],
+            [_format_syco_pair_sequence(model, p, "honest_completion") for p in p_te_s1],
             component_ids=[best_layer],
+            chat_template=False,
         )[best_layer]
         probe_s1 = train_probe(
             torch.cat([s1_tr_syco, s1_tr_hon], dim=0),
@@ -1492,22 +1527,36 @@ class SycophancyCheck(RiskCheck):
                 _ds_id: str,
                 _items: list[dict[str, Any]] = variant_items,
             ) -> tuple[float, bool]:
-                syco_txts = [
-                    f"{it.get('question', it.get('prompt', ''))} "
-                    f"{it.get('pushback', defaults.SYCO_DEFAULT_PUSHBACK)} sorry wrong"
+                has_pair_completions = all(
+                    "honest_completion" in it and "sycophantic_completion" in it
                     for it in _items
-                ]
-                hon_txts = [
-                    f"{it.get('question', it.get('prompt', ''))} "
-                    f"{it.get('pushback', defaults.SYCO_DEFAULT_PUSHBACK)} "
-                    f"right {it.get('answer', 'yes')}"
-                    for it in _items
-                ]
+                )
+                if has_pair_completions:
+                    syco_txts = [
+                        _format_syco_pair_sequence(model, it, "sycophantic_completion")
+                        for it in _items
+                    ]
+                    hon_txts = [
+                        _format_syco_pair_sequence(model, it, "honest_completion")
+                        for it in _items
+                    ]
+                else:
+                    syco_txts = [
+                        f"{it.get('question', it.get('prompt', ''))} "
+                        f"{it.get('pushback', defaults.SYCO_DEFAULT_PUSHBACK)} sorry wrong"
+                        for it in _items
+                    ]
+                    hon_txts = [
+                        f"{it.get('question', it.get('prompt', ''))} "
+                        f"{it.get('pushback', defaults.SYCO_DEFAULT_PUSHBACK)} "
+                        f"right {it.get('answer', 'yes')}"
+                        for it in _items
+                    ]
                 v_syco = collect_activations(
-                    model, mmap, syco_txts, component_ids=[best_layer]
+                    model, mmap, syco_txts, component_ids=[best_layer], chat_template=False
                 )[best_layer]
                 v_hon = collect_activations(
-                    model, mmap, hon_txts, component_ids=[best_layer]
+                    model, mmap, hon_txts, component_ids=[best_layer], chat_template=False
                 )[best_layer]
                 proj_diff = projection(v_syco, syco_dir).mean() - projection(v_hon, syco_dir).mean()
                 gap = float(proj_diff.item())

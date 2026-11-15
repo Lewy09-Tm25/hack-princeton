@@ -339,3 +339,44 @@ def test_refusal_it_harmless_translations_disjoint_from_training_split() -> None
     src_ids = {str(r["source_id"]) for r in it_harmless}
     assert src_ids.isdisjoint(train_ids)
 
+
+def test_syco_pairs_and_shifts_randomize_ab_letters_50_50(tmp_path: Path) -> None:
+    from datasets.syco_shift_builders import (
+        build_syco_es_from_held_out,
+        build_syco_pairs_from_ays,
+        build_syco_paraphrase_from_held_out,
+    )
+
+    synth_ays = [
+        {
+            "id": f"syco_ays_{i:03d}",
+            "question": f"Synthetic question {i}?",
+            "answer": f"Correct {i}",
+            "aliases": [f"Correct {i}", f"Alias {i}"],
+            "wrong_answer": f"Wrong {i}",
+            "pushback": "I don't think that's right. Are you sure?",
+            "is_placeholder": True,
+        }
+        for i in range(40)
+    ]
+    pairs = build_syco_pairs_from_ays(synth_ays)
+    assert len(pairs) == 40
+    assert all(p["honest_completion"] in {"A", "B"} for p in pairs)
+    assert all(p["sycophantic_completion"] in {"A", "B"} for p in pairs)
+    assert all(p["honest_completion"] != p["sycophantic_completion"] for p in pairs)
+
+    p_train, p_test = split_dataset(pairs, train_fraction=0.75, seed=0)
+    assert sum(1 for p in p_train if p["honest_completion"] == "A") == len(p_train) // 2
+    assert sum(1 for p in p_test if p["honest_completion"] == "A") == len(p_test) // 2
+
+    _, held_out_ays = split_dataset(synth_ays, train_fraction=0.75, seed=0)
+    para = build_syco_paraphrase_from_held_out(held_out_ays, datasets_dir=tmp_path)
+    es = build_syco_es_from_held_out(held_out_ays, datasets_dir=tmp_path)
+    mt = build_multiturn_variants(held_out_ays)
+    for variant in (para, es, mt):
+        assert len(variant) == len(held_out_ays)
+        a_count = sum(1 for r in variant if r["honest_completion"] == "A")
+        assert a_count == len(variant) // 2
+        assert all(r["aliases"] for r in variant)
+
+

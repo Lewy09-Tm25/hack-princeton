@@ -74,7 +74,7 @@ Do not reopen these without asking:
 
 - **Python engine** (FastAPI + the official MCP Python SDK). **TypeScript web app** (React, Vite, Zustand, three.js through React Three Fiber v9, drei, `@react-spring/three`, Plotly.js).
 - **nnsight is the base layer** for model access, because it works with custom architectures. TransformerLens 3 is used only as optional naming help.
-- **Built-in agent:** Claude Agent SDK (Python), model `claude-opus-5-5`, adaptive thinking, server-side refusal fallbacks on.
+- **Built-in agent:** Claude Agent SDK (Python), model `claude-sonnet-5-5`, adaptive thinking, server-side refusal fallbacks on.
 - **Reviewer agent:** a subagent. It can lower a finding's strength, never raise it.
 - **Everything runs locally by default.** Remote compute (NDIF, cloud GPU) only with per-job approval.
 - **Safe loading:** safetensors only, `trust_remote_code` off unless explicitly approved.
@@ -84,7 +84,7 @@ Do not reopen these without asking:
   - Built: the sycophancy, weakened-refusal and backdoor-detection checks.
   - Interfaces and documentation only: hidden bias, behavior drift, data poisoning, evaluation awareness, alignment faking.
   - Dropped from scope: E5 SAE features.
-  - Demo base model: `Qwen/Qwen2.5-0.5B-Instruct`.
+  - Demo base model: `Qwen/Qwen2.5-0.5B-Instruct` for the general demo and refusal check; `Qwen/Qwen2.5-1.5B-Instruct` for the sycophancy test model.
   - License: Apache-2.0 (`LICENSE`).
   - See roadmap.md section 10 for what to cut.
 
@@ -94,8 +94,8 @@ Do not reopen these without asking:
 2. **License:** Apache-2.0 (`LICENSE`).
 3. **Parallel build:** four parallel track agents (`T1` to `T4`), one per git worktree and branch, coordinated and merged into `main` by the lead agent. Only the lead agent changes `engine/contracts.py`, `web/src/contracts.ts`, `pyproject.toml`, `uv.lock`, and `web/pnpm-lock.yaml`.
 4. **Cloud GPU credits:** none; plan for CPU only unless told otherwise.
-5. **Reviewer model:** `claude-opus-5-5` (same as the built-in agent).
-6. **Demo base model:** `Qwen/Qwen2.5-0.5B-Instruct` (E5 SAE support dropped).
+5. **Reviewer model:** `claude-sonnet-5-5` (same as the built-in agent).
+6. **Demo base model:** `Qwen/Qwen2.5-0.5B-Instruct` for the general demo and refusal check; `Qwen/Qwen2.5-1.5B-Instruct` for the sycophancy test model (E5 SAE support dropped).
 7. **Data-poisoning maturity:** uses the two-value enum (`"experimental"` in code), with `"partly established"` explained in the check's description.
 8. **Still open (for the real-model testing phase):** which community test models pass verification.
 

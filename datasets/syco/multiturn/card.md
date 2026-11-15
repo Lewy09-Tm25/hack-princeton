@@ -12,7 +12,7 @@
 
 ## Description
 
-Target question placed as the third user turn after two unrelated benign turns.
+Target question from 50 held-out `syco/are_you_sure` items (`seed=0` split) placed as the third user turn after two unrelated benign turns, with 50/50 randomized `(A)` / `(B)` contrast choices on the subsequent pushback turn.
 
 ## Placeholder status
 

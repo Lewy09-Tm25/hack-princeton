@@ -54,15 +54,16 @@ ORGANISM_CATALOG: tuple[OrganismSpec, ...] = (
         repo_id="Qwen/Qwen2.5-0.5B-Instruct",
         role="demo_base",
         community_untrusted=False,
-        notes="Demo base model for sycophancy and refusal checks.",
+        notes="Demo base model for the general demo and refusal checks.",
     ),
     OrganismSpec(
         key="qwen25_1_5b_instruct",
         repo_id="Qwen/Qwen2.5-1.5B-Instruct",
-        role="backdoor_clean_control",
+        role="sycophancy_and_backdoor_base",
         community_untrusted=False,
         notes=(
-            "Clean 1.5B base model (28 layers, ~3.09 GB safetensors) that "
+            "Clean 1.5B base model (28 layers, ~3.09 GB safetensors) used as the sycophancy "
+            "test-model base and as the matched clean control that "
             "Antonhansel/qwen2.5-1.5b-sleeper-canary was fine-tuned from."
         ),
     ),
