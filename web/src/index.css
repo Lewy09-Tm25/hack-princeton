@@ -1453,3 +1453,121 @@ body.is-resizing canvas {
   color: var(--text-muted);
   font-size: 0.9375rem;
 }
+
+/* "Loading <model>…" chip with a pulsing dot. */
+.loading-chip {
+  color: var(--text-muted);
+}
+
+.loading-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 999px;
+  background: var(--accent);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .loading-dot {
+    animation: loading-pulse 1.2s ease-in-out infinite;
+  }
+}
+
+@keyframes loading-pulse {
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Evidence panel: draggable top edge, title, claim. */
+.drawer-resizer {
+  flex: 0 0 6px;
+  cursor: row-resize;
+  background: var(--border-subtle);
+  touch-action: none;
+  transition: background 0.15s;
+}
+
+.drawer-resizer:hover,
+.drawer-resizer:focus-visible,
+body.is-resizing-rows .drawer-resizer {
+  background: var(--accent);
+  outline: none;
+}
+
+body.is-resizing-rows {
+  cursor: row-resize;
+  user-select: none;
+}
+
+body.is-resizing-rows canvas {
+  pointer-events: none;
+}
+
+.drawer-title {
+  font-size: 0.95rem;
+}
+
+.evidence-claim {
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: var(--text-primary);
+}
+
+.drawer-note {
+  margin: 0.4rem 0 0;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+/* Job chip colours by state. */
+.job-chip.job-done {
+  border-color: #3b9d5d;
+}
+
+.job-chip.job-failed {
+  border-color: #d64545;
+  color: #d64545;
+}
+
+/* "Strongest signal: Layer 3" chip, in the same blue as the 3D marker. */
+.strongest-chip {
+  border-color: #2f80ff;
+}
+
+.strongest-chip strong {
+  color: #2f80ff;
+}
+
+/* One line under a finding's claim saying what its strength level means. */
+.strength-meaning {
+  margin-top: 0.3rem;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+/* Withheld spot-check examples: one compact row each, with what the model did. */
+.example-item-withheld {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.example-withheld-note {
+  color: var(--text-muted);
+}
+
+/* Stop button: replaces Send while the agent replies or a check runs. */
+.stop-btn {
+  color: #ffffff;
+  background: #d64545;
+}
+
+.stop-btn:hover:not(:disabled) {
+  background: #b83838;
+  color: #ffffff;
+}

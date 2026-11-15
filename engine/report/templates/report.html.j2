@@ -265,7 +265,7 @@
                 · Review pending
               {% endif %}
             </td>
-            <td>{{ f.claim }}</td>
+            <td>{{ f.claim | plain_data }}</td>
           </tr>
           {% endfor %}
         </tbody>
@@ -282,7 +282,7 @@
         {% for block in finding_blocks %}
         <article class="card" id="finding-{{ block.finding.finding_id }}">
           <h3>
-            Finding <code>{{ block.finding.finding_id }}</code> — {{ block.finding.claim }}
+            Finding <code>{{ block.finding.finding_id }}</code> — {{ block.finding.claim | plain_data }}
           </h3>
           <p>
             <span class="badge badge-{{ block.finding.strength }}">Strength: {{ block.finding.strength }}</span>
@@ -323,7 +323,7 @@
                 <td><code>{{ ctrl.kind }}</code></td>
                 <td><a href="#provenance-results">{{ ctrl.value }}</a></td>
                 <td class="{{ ctrl.status_class }}">{{ ctrl.status_label }}</td>
-                <td>{{ ctrl.notes }}</td>
+                <td>{{ ctrl.notes | plain_data }}</td>
               </tr>
               {% endfor %}
             </tbody>
@@ -349,7 +349,7 @@
                 <td><code>{{ srow.kind }}</code></td>
                 <td><a href="#provenance-results">{{ srow.value }}</a></td>
                 <td class="{{ srow.status_class }}">{{ srow.status_label }}</td>
-                <td>{{ srow.notes }}</td>
+                <td>{{ srow.notes | plain_data }}</td>
               </tr>
               {% endfor %}
             </tbody>
@@ -362,7 +362,7 @@
           {% if examples %}
             {% for ex in examples %}
             <div class="example-item">
-              <div><strong>Dataset:</strong> <code>{{ ex.dataset_id }}</code> · <strong>Item:</strong> #{{ ex.index }}</div>
+              <div><strong>Dataset:</strong> {{ ex.dataset_id | plain_data }} · <strong>Item:</strong> #{{ ex.index }}</div>
               <div><strong>Input:</strong> {{ ex.prompt }}</div>
               <div><strong>Output:</strong> {{ ex.response }}</div>
             </div>
@@ -440,7 +440,7 @@
           </div>
           <div class="kv-item">
             <span class="kv-label">Datasets</span>
-            <span class="kv-value"><code>{{ settings.datasets }}</code></span>
+            <span class="kv-value">{{ settings.datasets }}</span>
           </div>
         </div>
         {% if papers %}
@@ -496,7 +496,7 @@
                   —
                 {% endif %}
               </td>
-              <td><code>{{ rec.dataset_id }}</code> ({{ rec.split }})</td>
+              <td>{{ rec.dataset_id | plain_data }} ({{ rec.split }})</td>
               <td>{{ rec.seed }}</td>
             </tr>
             {% endfor %}
@@ -527,9 +527,9 @@
             {% for item in review_deck %}
             <tr>
               <td><a href="#finding-{{ item.finding_id }}"><code>{{ item.finding_id }}</code></a></td>
-              <td>{{ item.claim }}</td>
+              <td>{{ item.claim | plain_data }}</td>
               <td><code>{{ item.strength }}</code> ({{ item.maturity }})</td>
-              <td>{{ item.coverage }}</td>
+              <td>{{ item.coverage | plain_data }}</td>
             </tr>
             {% endfor %}
           </tbody>

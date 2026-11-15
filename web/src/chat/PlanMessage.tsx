@@ -1,5 +1,7 @@
+import { displayModelName } from '../api'
 import type { Plan } from '../contracts'
-import { describeCheckMeasurement, formatDurationEstimate } from './chatLogic'
+import { datasetLabel } from '../datasetNames'
+import { describeCheckMeasurement } from './chatLogic'
 
 export interface PlanMessageProps {
   plan: Plan
@@ -38,11 +40,11 @@ export function PlanMessage({ plan, onApprove }: PlanMessageProps) {
       <dl className="kv-list">
         <dt>Model</dt>
         <dd>
-          <code>{plan.model_id}</code>
+          {displayModelName(plan.model_id)}
           {plan.reference_model_id ? (
             <span>
               {' '}
-              compared with <code>{plan.reference_model_id}</code>
+              compared with {displayModelName(plan.reference_model_id)}
             </span>
           ) : null}
         </dd>
@@ -53,8 +55,12 @@ export function PlanMessage({ plan, onApprove }: PlanMessageProps) {
         <dt>Layers</dt>
         <dd>{layersText}</dd>
 
-        <dt>Datasets</dt>
-        <dd>{plan.datasets.length > 0 ? plan.datasets.join(', ') : 'Default check datasets'}</dd>
+        <dt>Data</dt>
+        <dd>
+          {plan.datasets.length > 0
+            ? plan.datasets.map(datasetLabel).join('; ')
+            : 'Default check data'}
+        </dd>
 
         <dt>Required controls</dt>
         <dd>{plan.controls.join(', ')}</dd>
@@ -75,8 +81,6 @@ export function PlanMessage({ plan, onApprove }: PlanMessageProps) {
           )}
         </dd>
 
-        <dt>Estimated time</dt>
-        <dd>{formatDurationEstimate(plan.estimate_seconds)} on detected hardware</dd>
       </dl>
 
       <div className="card-section">

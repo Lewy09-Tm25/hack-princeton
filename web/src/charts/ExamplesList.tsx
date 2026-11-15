@@ -1,6 +1,7 @@
 import type { SpotCheckExample } from '../api'
+import { datasetLabel } from '../datasetNames'
 
-export const REDACTED_BADGE_TEXT = '[REDACTED — harmful prompt/output withheld]'
+export const REDACTED_BADGE_TEXT = 'text withheld'
 
 export interface ExamplesListProps {
   examples: SpotCheckExample[]
@@ -16,11 +17,29 @@ export interface SanitizedExampleView {
   promptText: string
   responseText: string
   referenceResponseText: string | null
+  /** For withheld examples: what the model did, when the engine recorded it. */
+  outcome: string | null
 }
 
 function isBracketedRedactionSummary(text: string): boolean {
   const trimmed = text.trim()
   return trimmed.startsWith('[') && trimmed.endsWith(']')
+}
+
+/** What the model did on a withheld example, from the engine's safe summary fields. */
+function outcomeOf(example: SpotCheckExample): string | null {
+  if (typeof example.refused === 'boolean') {
+    return example.refused ? 'refused' : 'did not refuse'
+  }
+  const resp = typeof example.response === 'string' ? example.response.trim() : ''
+  const m = /^\[response:\s*(.+)\]$/i.exec(resp)
+  if (m) {
+    const word = m[1].trim().toLowerCase()
+    if (word === 'complied' || word === 'answered') return 'did not refuse'
+    return word
+  }
+  if (typeof example.label === 'string' && example.label) return example.label
+  return null
 }
 
 export function sanitizeExampleForDisplay(
@@ -31,13 +50,13 @@ export function sanitizeExampleForDisplay(
   const isPlaceholder = Boolean(example.is_placeholder || forcePlaceholder)
 
   if (isRedacted) {
+    // Harmful prompts and the model's answers to them never leave the engine. Show only
+    // safe summaries: which dataset item it was, and what the model did.
     const safePrompt =
-      example.redacted && typeof example.prompt === 'string' && isBracketedRedactionSummary(example.prompt)
+      example.redacted &&
+      typeof example.prompt === 'string' &&
+      isBracketedRedactionSummary(example.prompt)
         ? example.prompt.trim()
-        : REDACTED_BADGE_TEXT
-    const safeResponse =
-      example.redacted && typeof example.response === 'string' && isBracketedRedactionSummary(example.response)
-        ? example.response.trim()
         : REDACTED_BADGE_TEXT
     return {
       datasetId: example.dataset_id,
@@ -45,8 +64,9 @@ export function sanitizeExampleForDisplay(
       isRedacted: true,
       isPlaceholder,
       promptText: safePrompt,
-      responseText: safeResponse,
+      responseText: REDACTED_BADGE_TEXT,
       referenceResponseText: null,
+      outcome: outcomeOf(example),
     }
   }
 
@@ -59,6 +79,7 @@ export function sanitizeExampleForDisplay(
     responseText: example.response,
     referenceResponseText:
       typeof example.reference_response === 'string' ? example.reference_response : null,
+    outcome: null,
   }
 }
 
@@ -77,12 +98,12 @@ export function ExamplesList({
         <div>
           <h4 className="chart-card-title">Spot-check examples</h4>
           <span className="chart-card-subtitle">
-            Sampled items from the run. Harmful prompts and outputs are withheld by engine
-            redaction.
+            {anyRedacted
+              ? 'Examples from the run. Harmful requests and the model’s answers to them stay inside the engine, so only what the model did is shown.'
+              : 'Examples from the run.'}
           </span>
         </div>
         <div className="badge-row">
-          {anyRedacted && <span className="badge badge-redacted">{REDACTED_BADGE_TEXT}</span>}
           {anyPlaceholder && (
             <span className="badge badge-placeholder">unverified / placeholder</span>
           )}
@@ -90,47 +111,63 @@ export function ExamplesList({
       </div>
 
       {loading ? (
-        <p className="chart-empty-note">Loading spot-check examples...</p>
+        <p className="chart-empty-note">Loading examples…</p>
       ) : sanitized.length === 0 ? (
-        <p className="chart-empty-note">No spot-check examples recorded for this run.</p>
+        <p className="chart-empty-note">No examples recorded for this run.</p>
       ) : (
         <ul className="examples-list">
-          {sanitized.map((item, idx) => (
-            <li
-              key={`${item.datasetId}_${item.index}_${idx}`}
-              className="example-item"
-              aria-label={`Example ${item.index} from ${item.datasetId}`}
-            >
-              <div className="example-item-header">
+          {sanitized.map((item, idx) =>
+            item.isRedacted ? (
+              <li
+                key={`${item.datasetId}_${item.index}_${idx}`}
+                className="example-item example-item-withheld"
+                aria-label={`Example ${item.index} from ${datasetLabel(item.datasetId)}`}
+              >
                 <span>
-                  <code>{item.datasetId}</code> · item #{item.index}
+                  {datasetLabel(item.datasetId)} #{item.index}
+                  <span className="example-withheld-note"> · text withheld</span>
                 </span>
-                <div className="badge-row">
-                  {item.isRedacted && (
-                    <span className="badge badge-redacted">{REDACTED_BADGE_TEXT}</span>
-                  )}
+                {item.outcome && (
+                  <span
+                    className={`badge ${
+                      item.outcome === 'refused' ? 'badge-established' : 'badge-inconclusive'
+                    }`}
+                  >
+                    {item.outcome}
+                  </span>
+                )}
+              </li>
+            ) : (
+              <li
+                key={`${item.datasetId}_${item.index}_${idx}`}
+                className="example-item"
+                aria-label={`Example ${item.index} from ${datasetLabel(item.datasetId)}`}
+              >
+                <div className="example-item-header">
+                  <span>
+                    {datasetLabel(item.datasetId)} #{item.index}
+                  </span>
                   {item.isPlaceholder && (
                     <span className="badge badge-placeholder">unverified / placeholder</span>
                   )}
                 </div>
-              </div>
-
-              <div className="example-field">
-                <span className="example-field-label">Prompt:</span>{' '}
-                <span>{item.promptText}</span>
-              </div>
-              <div className="example-field">
-                <span className="example-field-label">Model response:</span>{' '}
-                <span>{item.responseText}</span>
-              </div>
-              {item.referenceResponseText && (
                 <div className="example-field">
-                  <span className="example-field-label">Reference response:</span>{' '}
-                  <span>{item.referenceResponseText}</span>
+                  <span className="example-field-label">Prompt:</span>{' '}
+                  <span>{item.promptText}</span>
                 </div>
-              )}
-            </li>
-          ))}
+                <div className="example-field">
+                  <span className="example-field-label">Model response:</span>{' '}
+                  <span>{item.responseText}</span>
+                </div>
+                {item.referenceResponseText && (
+                  <div className="example-field">
+                    <span className="example-field-label">Reference response:</span>{' '}
+                    <span>{item.referenceResponseText}</span>
+                  </div>
+                )}
+              </li>
+            ),
+          )}
         </ul>
       )}
     </section>

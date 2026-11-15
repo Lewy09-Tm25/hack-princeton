@@ -1,4 +1,5 @@
 import type { ControlResult, Finding } from '../contracts'
+import { plainDatasetText } from '../datasetNames'
 
 export type ShiftOutcomeStatus = 'passed' | 'failed' | 'not run'
 
@@ -95,7 +96,7 @@ export function ShiftTable({ shiftTests, finding, isPlaceholder }: ShiftTablePro
                     <span className={outcomeBadgeClass(status)}>{status}</span>
                   </td>
                   <td>{hasValue ? (item.value as number).toFixed(2) : '—'}</td>
-                  <td>{item.notes ?? '—'}</td>
+                  <td>{item.notes ? plainDatasetText(item.notes) : '—'}</td>
                 </tr>
               )
             })}

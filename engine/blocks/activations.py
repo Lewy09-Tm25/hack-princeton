@@ -11,6 +11,7 @@ import torch
 from safetensors.torch import load_file, save_file
 
 from engine.blocks.generate import PromptInput, encode_prompts
+from engine.blocks.progress import report_progress
 from engine.compute import batch_size_for, detect
 from engine.contracts import Component, ModelMap
 from engine.loader.load import LoadedModel
@@ -186,6 +187,7 @@ def collect_activations(
 
     with torch.inference_mode():
         for batch_idx, start in enumerate(range(0, len(prompts), eff_bs)):
+            report_progress("Reading the model's internal states", start, len(prompts))
             chunk = prompts[start : start + eff_bs]
             enc = encode_prompts(
                 model=model,

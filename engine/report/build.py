@@ -209,6 +209,13 @@ def build_report(
         loader=FileSystemLoader(str(_TEMPLATES_DIR)),
         autoescape=select_autoescape(["html", "j2"]),
     )
+    # People read this report: show plain dataset names, not engine IDs.
+    from engine.data.registry import plain_dataset_text
+
+    env.filters["plain_data"] = plain_dataset_text
+    coverage_statements = [plain_dataset_text(s) for s in coverage_statements]
+    not_shown_statements = [plain_dataset_text(s) for s in not_shown_statements]
+    settings = {**settings, "datasets": plain_dataset_text(settings["datasets"])}
     template = env.get_template("report.html.j2")
     rendered = template.render(
         report_id=assigned_report_id,

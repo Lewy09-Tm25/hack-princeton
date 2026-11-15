@@ -93,3 +93,49 @@ export async function renderPlotlySafely(
     return null
   }
 }
+
+/**
+ * Keep a chart sized to its box. A chart drawn while its box is hidden comes out at zero
+ * size, and the bottom panel can be resized at any time, so redraw at the box's size
+ * whenever the box changes size (including when it first becomes visible).
+ */
+export function keepPlotSized(container: HTMLElement): () => void {
+  // Resize once right away (the chart may have been drawn while hidden). This does not
+  // depend on the browser drawing the page, unlike the size observer below.
+  const firstResize = setTimeout(() => resizePlotNow(container), 60)
+  if (typeof ResizeObserver === 'undefined') {
+    return () => clearTimeout(firstResize)
+  }
+  // A short timer rather than an animation frame: frames do not run in background tabs.
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const observer = new ResizeObserver(() => {
+    clearTimeout(timer)
+    timer = setTimeout(() => {
+      if (container.offsetWidth === 0 || container.offsetHeight === 0) return
+      resizePlotNow(container)
+    }, 60)
+  })
+  observer.observe(container)
+  return () => {
+    clearTimeout(firstResize)
+    clearTimeout(timer)
+    observer.disconnect()
+  }
+}
+
+/** Redraw a chart at its box's current size, if the box is visible. */
+function resizePlotNow(container: HTMLElement): void {
+  if (container.offsetWidth === 0 || container.offsetHeight === 0) return
+  void loadPlotlyModule().then((Plotly) => {
+    // The lazily loaded module may not expose `Plots`; the bundle also sets a global.
+    const globalPlotly = (
+      globalThis as { Plotly?: { Plots?: { resize: (el: HTMLElement) => void } } }
+    ).Plotly
+    const resize = Plotly?.Plots?.resize ?? globalPlotly?.Plots?.resize
+    try {
+      resize?.(container)
+    } catch {
+      // The chart may have been removed in the meantime.
+    }
+  })
+}

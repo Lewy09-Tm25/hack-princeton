@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ResultRecord } from '../contracts'
 import { useAppStore } from '../store'
-import { OKABE_ITO, renderPlotlySafely } from './plotlyClient'
+import { OKABE_ITO, keepPlotSized, renderPlotlySafely } from './plotlyClient'
 
 export interface LayerCurvePoint {
   layerIndex: number
@@ -140,6 +140,7 @@ export function LayerCurve({
   const [plotlyReady, setPlotlyReady] = useState(false)
   const plotContainerRef = useRef<HTMLDivElement | null>(null)
 
+
   const series = useMemo(
     () => extractLayerCurveSeries(results, metricProp ?? selectedMetric, activeCheckpointId),
     [results, metricProp, selectedMetric, activeCheckpointId],
@@ -219,10 +220,11 @@ export function LayerCurve({
       el,
       traces,
       {
-        height: 220,
+        height: 280,
         xaxis: { title: { text: 'Layer' } },
         yaxis: { title: { text: series.metric } },
-        legend: { orientation: 'h', y: 1.16, x: 0 },
+        legend: { orientation: 'h', x: 0, y: -0.32, yanchor: 'top' },
+        margin: { l: 52, r: 18, t: 16, b: 96 },
       },
       undefined,
       (clickEvt) => {
@@ -241,7 +243,8 @@ export function LayerCurve({
       },
     ).then((teardown) => {
       if (cancelled) {
-        teardown?.()
+        // A newer draw has already taken over this chart box. Do not clear the box here:
+        // that would wipe the newer chart and leave the panel blank.
         return
       }
       cleanup = teardown
@@ -253,6 +256,15 @@ export function LayerCurve({
       cleanup?.()
     }
   }, [series, focusedComponentIds, handlePointFocus])
+
+  // Redraw at the right size once the chart box exists and is visible, and whenever the
+  // panel is resized. The box only exists once there is data, so re-attach when it appears.
+  const hasChartData = series.points.length > 0
+  useEffect(() => {
+    const el = plotContainerRef.current
+    if (!el || !hasChartData) return
+    return keepPlotSized(el)
+  }, [hasChartData, plotlyReady])
 
   if (series.points.length === 0) {
     return (

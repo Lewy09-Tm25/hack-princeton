@@ -60,11 +60,16 @@ def _looks_like_local_path(source: str) -> bool:
     return False
 
 
+class ModelNotDownloadedError(FileNotFoundError):
+    """The model is not on this machine, and downloading it was not allowed."""
+
+
 def _resolve_folder(
     source: str,
     revision: str | None,
     allow_remote_code: bool,
     allow_unsafe_weights: bool,
+    allow_download: bool = True,
 ) -> tuple[Path, bool]:
     """Resolve `source` to a local folder, returning `(folder_path, is_local_source)`."""
     candidate = Path(source)
@@ -91,6 +96,42 @@ def _resolve_folder(
         ]
         if allow_remote_code:
             allow_patterns.append("*.py")
+
+    # Use the local copy when the model is already downloaded: no network round trip, and
+    # no cache writes (on Windows those can fail without symlink rights). Go online only if
+    # the weights are not on this machine yet.
+    try:
+        cached = Path(
+            snapshot_download(
+                repo_id=source,
+                revision=revision,
+                allow_patterns=allow_patterns,
+                local_files_only=True,
+            )
+        ).resolve()
+        if any(cached.glob("*.safetensors")):
+            return cached, False
+    except Exception:
+        pass
+
+    # Models fetched by the project's own scripts live in `models/<org>__<name>/<revision>`,
+    # not in the Hugging Face cache. Use that copy before considering a download.
+    project_copy = (
+        Path(__file__).resolve().parents[2]
+        / "models"
+        / source.replace("/", "__")
+        / (revision or "main")
+    )
+    if project_copy.is_dir() and any(project_copy.glob("*.safetensors")):
+        return project_copy.resolve(), True
+
+    if not allow_download:
+        rev_text = f" at revision {revision}" if revision else ""
+        raise ModelNotDownloadedError(
+            f"'{source}'{rev_text} is not on this machine. Loading it would download its "
+            "weights from Hugging Face. Ask the user first, saying which model it is; "
+            "load it with allow_download=true only after they agree."
+        )
 
     downloaded = snapshot_download(
         repo_id=source,
@@ -306,6 +347,7 @@ def load_model(
     adapter: str | None = None,
     allow_unsafe_weights: bool = False,
     is_placeholder: bool | None = None,
+    allow_download: bool = True,
 ) -> LoadedModel:
     """Load a causal language model safely, wrap it in nnsight, and cache it in the registry."""
     folder, is_local = _resolve_folder(
@@ -313,6 +355,7 @@ def load_model(
         revision=revision,
         allow_remote_code=allow_remote_code,
         allow_unsafe_weights=allow_unsafe_weights,
+        allow_download=allow_download,
     )
     _verify_folder_safety(
         folder=folder,
@@ -333,6 +376,7 @@ def load_model(
             revision=None,
             allow_remote_code=allow_remote_code,
             allow_unsafe_weights=allow_unsafe_weights,
+            allow_download=allow_download,
         )
         _verify_folder_safety(
             folder=adapter_folder,

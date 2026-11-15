@@ -73,14 +73,16 @@ describe('SSR component rendering for W1, W2, and W3', () => {
     expect(html).toContain('Approve plan')
   })
 
-  it('renders FindingMessage with strength, maturity, placeholder badge, coverage, not_shown, reviewer notes, and Show evidence', () => {
+  it('renders FindingMessage with an explained strength, no method label, and plain test names', () => {
     const finding = createPlaceholderSycophancyFinding()
     const html = renderToStaticMarkup(<FindingMessage finding={finding} onShowEvidence={() => {}} />)
-    expect(html).toContain('strength: suggestive')
-    expect(html).toContain('method: established')
+    expect(html).toContain('>suggestive<')
+    expect(html).toContain('Middle of three levels')
+    expect(html).not.toContain('method:')
+    expect(html).not.toContain('random_direction')
     expect(html).toContain('unverified / placeholder')
     expect(html).toContain('What this does not show')
-    expect(html).toContain('Reviewer notes')
+    expect(html).toContain('Independent review')
     expect(html).toContain('Show evidence')
   })
 

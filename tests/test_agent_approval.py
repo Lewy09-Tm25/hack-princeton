@@ -203,7 +203,8 @@ def test_pre_tool_use_hook_blocks_unapproved_and_revised_plans_and_logs_calls(
         # Verify secret scrubbing in audit log
         secret_sentinel = "DO_NOT_LOG_THIS_TOKEN_VALUE"
         _drive_sync(session.invoke_hooks_and_tool("mcp__engine__get_compute", {}))
-        log_hook = session.pre_tool_hooks[1].hooks[0]
+        # The audit-log hook is the one that applies to every tool (no matcher).
+        log_hook = next(m for m in session.pre_tool_hooks if m.matcher is None).hooks[0]
         _drive_sync(
             log_hook(
                 {
@@ -238,3 +239,41 @@ def test_pre_tool_use_hook_blocks_unapproved_and_revised_plans_and_logs_calls(
     finally:
         _drive_sync(session.close())
         rec.close()
+
+
+def test_chat_yes_approves_plan_only_after_a_later_user_message(tmp_path: Path) -> None:
+    """A "yes" in chat approves a plan, but only if it came after the latest plan version."""
+    from agent.hooks import make_plan_approval_hook
+
+    ws = tmp_path / "workspace"
+    rec = Record(ws)
+    svc = EngineService(rec, stub_mode=True)
+    svc.load_model(source="Qwen/Qwen2.5-0.5B-Instruct")
+    plan = svc.draft_plan(
+        check="sycophancy", model_id="hf:Qwen/Qwen2.5-0.5B-Instruct@main", layers=[0, 1]
+    )
+    plan_id = plan["plan_id"]
+
+    def decision(turn_state: dict[str, int], approved_by_user: bool) -> str:
+        hook = make_plan_approval_hook(ws, record=rec, turn_state=turn_state)
+        out = _drive_sync(
+            hook(
+                {
+                    "tool_name": "mcp__engine__run_plan",
+                    "tool_input": {"plan_id": plan_id, "approved_by_user": approved_by_user},
+                },
+                None,
+                None,
+            )
+        )
+        return out.get("hookSpecificOutput", {}).get("permissionDecision", "allow")
+
+    # Plan drafted in turn 1; the agent tries to run it in the same turn: blocked.
+    assert decision({"turn": 1, "last_plan_change_turn": 1}, approved_by_user=True) == "deny"
+    # The agent does not say the user approved: blocked.
+    assert decision({"turn": 2, "last_plan_change_turn": 1}, approved_by_user=False) == "deny"
+    assert rec.get_plan(plan_id).approved is False
+    # The user replied in turn 2 and the agent passes their yes: approved and allowed.
+    assert decision({"turn": 2, "last_plan_change_turn": 1}, approved_by_user=True) == "allow"
+    assert rec.get_plan(plan_id).approved is True
+    rec.close()

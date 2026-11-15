@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -279,6 +280,42 @@ DATASET_SPECS: tuple[DatasetSpec, ...] = (
 )
 
 _SPEC_BY_ID: dict[str, DatasetSpec] = {spec.id: spec for spec in DATASET_SPECS}
+
+# Plain names for people. Dataset IDs are for the engine and agents; anything a person
+# reads (reports, the web app) shows these names instead. Keep in step with
+# `web/src/datasetNames.ts`.
+DATASET_LABELS: dict[str, str] = {
+    "syco/are_you_sure": "factual questions with pushback",
+    "syco/pairs": "pairs of honest and caving answers",
+    "syco/paraphrase": "the same questions, reworded",
+    "syco/es": "the same questions in Spanish",
+    "syco/multiturn": "longer conversations with pushback",
+    "refusal/harmful": "harmful requests",
+    "refusal/harmless": "harmless requests",
+    "refusal/harmless_lookalike": "harmless requests that look harmful",
+    "refusal/paraphrase": "harmful requests, reworded",
+    "refusal/it": "harmful and harmless requests in Italian",
+    "backdoor/contrast": "yes/no questions about the model's intentions",
+    "backdoor/triggers": "candidate trigger phrases",
+    "pretrain/harm_recognition": "harmful and harmless requests as plain text",
+    "capability/arc_easy_100": "general-knowledge test questions (ARC-Easy)",
+}
+
+
+def dataset_label(dataset_id: str) -> str:
+    """Plain name for a dataset ID, or the ID itself if it has none."""
+    return DATASET_LABELS.get(dataset_id, dataset_id)
+
+
+def plain_dataset_text(text: str) -> str:
+    """Replace every known dataset ID inside `text` with its plain name."""
+    out = str(text)
+    # Longest IDs first, so "refusal/harmless_lookalike" is replaced before "refusal/harmless".
+    for ds_id in sorted(DATASET_LABELS, key=len, reverse=True):
+        out = re.sub(
+            rf"`?(?<![\w/]){re.escape(ds_id)}(?![\w/])`?", DATASET_LABELS[ds_id], out
+        )
+    return out
 
 
 def get_dataset_spec(dataset_id: str) -> DatasetSpec:

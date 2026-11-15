@@ -244,24 +244,22 @@ describe('W7 ClaudeCodePanel & App drawer integration', () => {
     expect(copiedHtml).toContain('>Copied<')
   })
 
-  it('switches App bottom drawer cleanly between charts, report, and claude-code tabs', () => {
+  it('opens the bottom panel as Evidence or Claude Code setup, with no Report tab', () => {
     sharedFakePlayer.replaySynchronously('qwen25_sycophancy')
     const store = useAppStore.getState()
 
-    // 1. Charts tab
+    // 1. Evidence panel (opened from a finding's Evidence button)
     store.setDrawerTab('charts')
     Object.assign(useAppStore.getInitialState(), useAppStore.getState())
-    const chartsHtml = renderToStaticMarkup(<App />)
-    expect(chartsHtml).toContain('Per-layer curve')
-    expect(chartsHtml).toContain('Distribution shift tests')
+    const evidenceHtml = renderToStaticMarkup(<App />)
+    expect(evidenceHtml).toContain('aria-label="Evidence"')
+    expect(evidenceHtml).toContain('Per-layer curve')
+    expect(evidenceHtml).toContain('Distribution shift tests')
+    expect(evidenceHtml).not.toContain('>Report<')
+    // No internal IDs in the panel header.
+    expect(evidenceHtml).not.toContain('Evidence for finding')
 
-    // 2. Report tab (in fake mode shows honest synthetic report preview, never a fake verified report)
-    store.setDrawerTab('report')
-    Object.assign(useAppStore.getInitialState(), useAppStore.getState())
-    const reportHtml = renderToStaticMarkup(<App />)
-    expect(reportHtml).toContain(SYNTHETIC_REPORT_BANNER_TEXT)
-
-    // 3. Claude Code setup tab
+    // 2. Claude Code setup
     store.setDrawerTab('claude-code')
     Object.assign(useAppStore.getInitialState(), useAppStore.getState())
     const setupHtml = renderToStaticMarkup(<App />)
@@ -270,10 +268,10 @@ describe('W7 ClaudeCodePanel & App drawer integration', () => {
     expect(setupHtml).toContain('Claude Code plugin')
     expect(setupHtml).toContain(DEFAULT_PLUGIN_COMMAND)
 
-    // 4. Closed drawer
+    // 3. Closed
     store.setDrawerTab('closed')
     Object.assign(useAppStore.getInitialState(), useAppStore.getState())
     const closedHtml = renderToStaticMarkup(<App />)
-    expect(closedHtml).not.toContain('aria-label="Details drawer"')
+    expect(closedHtml).not.toContain('aria-label="Evidence"')
   })
 })

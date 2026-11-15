@@ -7,7 +7,7 @@ import {
   approvePlanFromButton,
   submitChatTurn,
 } from './chatLogic'
-import { SendIcon } from '../icons'
+import { SendIcon, StopIcon } from '../icons'
 import { Message } from './Message'
 
 // Shown before any model is loaded: the first step is saying which model to check.
@@ -21,6 +21,9 @@ const BASE_SUGGESTIONS: ReadonlyArray<string> = [
   'Check whether refusals weakened compared with the base model',
   'Check this model for backdoor signals against a clean reference',
 ]
+
+// Whether this page load has already connected to the chat once (see connect()).
+let newPageAnnounced = false
 
 export function ChatPanel() {
   const chatMessages = useAppStore((s) => s.chatMessages)
@@ -38,6 +41,12 @@ export function ChatPanel() {
   const [chatWsConnected, setChatWsConnected] = useState(false)
   const socketRef = useRef<WebSocket | null>(null)
   const streamingMsgIdRef = useRef<string | null>(null)
+  // True from sending a message until the agent's reply is complete.
+  const [awaitingReply, setAwaitingReply] = useState(false)
+  const jobRunning = useAppStore((s) =>
+    Object.values(s.jobs).some((j) => j.status === 'running' || j.status === 'queued'),
+  )
+  const showStop = !isFakeMode && chatWsConnected && (awaitingReply || jobRunning)
   const messagesEndRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
@@ -58,7 +67,9 @@ export function ChatPanel() {
       if (cancelled || useAppStore.getState().isFakeMode) return
       let ws: WebSocket
       try {
-        ws = new WebSocket(buildWsUrl('/ws/chat'))
+        // The first connection after the page loads tells the engine to start with an
+        // empty view; automatic reconnects later in the session do not.
+        ws = new WebSocket(buildWsUrl(newPageAnnounced ? '/ws/chat' : '/ws/chat?new_page=1'))
       } catch {
         scheduleReconnect()
         return
@@ -66,6 +77,7 @@ export function ChatPanel() {
       socketRef.current = ws
 
       ws.onopen = () => {
+        newPageAnnounced = true
         if (cancelled) return
         attempt = 0
         setChatWsConnected(true)
@@ -73,6 +85,15 @@ export function ChatPanel() {
 
       ws.onmessage = (evt) => {
         if (cancelled) return
+        // The reply is over when the engine says so, or after a stop.
+        try {
+          const frame = JSON.parse(String(evt.data)) as { type?: string }
+          if (frame.type === 'turn_complete' || frame.type === 'stopped') {
+            setAwaitingReply(false)
+          }
+        } catch {
+          // Not JSON; applyIncomingChatFrame handles plain text.
+        }
         applyIncomingChatFrame(evt.data, streamingMsgIdRef)
       }
 
@@ -131,10 +152,17 @@ export function ChatPanel() {
   }
 
   const handleSend = () => {
+    if (draftInput.trim() && chatWsConnected) setAwaitingReply(true)
     void submitChatTurn({
       text: draftInput,
       sendOverSocket,
     })
+  }
+
+  // Stop button: ends the agent's reply and any running check, like a chat stop button.
+  const handleStop = () => {
+    sendOverSocket(JSON.stringify({ stop: true }))
+    setAwaitingReply(false)
   }
 
   const handleApprovePlan = (planId: string) => {
@@ -265,16 +293,28 @@ export function ChatPanel() {
               }
             }}
           />
-          <button
-            type="button"
-            className="icon-btn send-btn"
-            aria-label="Send message"
-            title="Send"
-            disabled={draftInput.trim().length === 0}
-            onClick={handleSend}
-          >
-            <SendIcon />
-          </button>
+          {showStop ? (
+            <button
+              type="button"
+              className="icon-btn stop-btn"
+              aria-label={jobRunning ? 'Stop the reply and the running check' : 'Stop the reply'}
+              title="Stop"
+              onClick={handleStop}
+            >
+              <StopIcon />
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="icon-btn send-btn"
+              aria-label="Send message"
+              title="Send"
+              disabled={draftInput.trim().length === 0}
+              onClick={handleSend}
+            >
+              <SendIcon />
+            </button>
+          )}
         </div>
       </div>
     </div>

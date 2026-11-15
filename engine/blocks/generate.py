@@ -7,6 +7,7 @@ from typing import Any, Literal
 
 import torch
 
+from engine.blocks.progress import report_progress
 from engine.compute import batch_size_for, detect
 from engine.loader.load import LoadedModel
 
@@ -110,11 +111,22 @@ def _greedy_generate_batch(
         }
         if pad_id is not None:
             gen_kwargs["pad_token_id"] = int(pad_id)
+        # Check for a stop request after every generated token: one batch of answers can
+        # take tens of seconds on CPU, too long to wait for a stop.
+        from transformers import StoppingCriteria, StoppingCriteriaList
+
+        class _StopWhenAsked(StoppingCriteria):
+            def __call__(self, input_ids: Any, scores: Any, **kwargs: Any) -> bool:
+                report_progress("Generating the model's answers", 0, 1)
+                return False
+
+        gen_kwargs["stopping_criteria"] = StoppingCriteriaList([_StopWhenAsked()])
         return hf_model.generate(**gen_kwargs)
 
     # Fallback greedy loop for custom PyTorch modules without GenerationMixin.
     cur_ids = inputs["input_ids"]
     for _ in range(int(max_new_tokens)):
+        report_progress("Generating the model's answers", 0, 1)
         out = hf_model(cur_ids)
         logits = out.logits if hasattr(out, "logits") else out
         next_tok = logits[:, -1:, :].argmax(dim=-1)
@@ -148,6 +160,7 @@ def generate(
     torch.manual_seed(int(seed))
     with torch.inference_mode():
         for start in range(0, len(prompts), eff_bs):
+            report_progress("Generating the model's answers", start, len(prompts))
             chunk = prompts[start : start + eff_bs]
             inputs = encode_prompts(
                 model=model,

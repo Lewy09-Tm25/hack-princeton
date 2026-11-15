@@ -55,6 +55,14 @@ def create_ws_router(
             return
 
         await websocket.accept()
+        # A freshly loaded page starts with an empty view. The page marks only its first
+        # connection, so an automatic reconnect mid-session keeps the model on screen.
+        # Loaded models stay in memory, so loading the same model again is instant.
+        if websocket.query_params.get("new_page") == "1":
+            if hasattr(service, "active_model_id"):
+                service.active_model_id = None
+            if hasattr(service, "active_series_id"):
+                service.active_series_id = None
         host = getattr(websocket.app.state, "host", "127.0.0.1")
         port = getattr(websocket.app.state, "port", 8000)
         mcp_url = f"http://{host}:{port}/mcp"
@@ -77,9 +85,59 @@ def create_ws_router(
                 engine_service=service,
             )
 
+        # Read incoming messages in the background so a stop request is handled at once,
+        # even while the agent is in the middle of a reply.
+        import asyncio
+
+        inbox: asyncio.Queue[str | None] = asyncio.Queue()
+
+        async def _stop_everything() -> None:
+            interrupt = getattr(session, "interrupt", None)
+            if callable(interrupt):
+                await interrupt()
+            try:
+                jobs = service.list_jobs()
+            except Exception:  # noqa: BLE001
+                jobs = []
+            for job in jobs:
+                if job.get("status") in ("queued", "running", "needs_decision"):
+                    try:
+                        service.stop_job(str(job.get("job_id")))
+                    except Exception:  # noqa: BLE001
+                        pass
+
+        async def _reader() -> None:
+            try:
+                while True:
+                    raw = await websocket.receive_text()
+                    try:
+                        msg = json.loads(raw)
+                    except json.JSONDecodeError:
+                        msg = None
+                    if isinstance(msg, dict) and msg.get("stop"):
+                        await _stop_everything()
+                        await websocket.send_json({"type": "stopped"})
+                        continue
+                    await inbox.put(raw)
+            except WebSocketDisconnect:
+                await inbox.put(None)
+
+        # Without a running event loop (some tests drive the socket by hand) there is no
+        # background reader: read each message directly, as before.
+        try:
+            asyncio.get_running_loop()
+            reader_task: asyncio.Task[None] | None = asyncio.create_task(_reader())
+        except RuntimeError:
+            reader_task = None
+
         try:
             while True:
-                raw_text = await websocket.receive_text()
+                if reader_task is not None:
+                    raw_text = await inbox.get()
+                    if raw_text is None:
+                        break
+                else:
+                    raw_text = await websocket.receive_text()
                 try:
                     parsed = json.loads(raw_text)
                 except json.JSONDecodeError:
@@ -118,6 +176,8 @@ def create_ws_router(
         except WebSocketDisconnect:
             pass
         finally:
+            if reader_task is not None:
+                reader_task.cancel()
             await session.close()
 
     return router

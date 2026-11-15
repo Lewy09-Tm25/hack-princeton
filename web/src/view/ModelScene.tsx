@@ -57,7 +57,6 @@ export function ModelScene({ modelMap }: ModelSceneProps) {
   const currentCheckpointId = useAppStore((s) => s.currentCheckpointId)
   const paintByCheckpoint = useAppStore((s) => s.paintByCheckpoint)
   const focusedComponentIds = useAppStore((s) => s.focusedComponentIds)
-  const focusReason = useAppStore((s) => s.focusReason)
   const selectedComponentId = useAppStore((s) => s.selectedComponentId)
   const expandedLayerIds = useAppStore((s) => s.expandedLayerIds)
   const viewMode = useAppStore((s) => s.viewMode)
@@ -77,6 +76,27 @@ export function ModelScene({ modelMap }: ModelSceneProps) {
     () => (activePaint && activePaint.scale === 'diverging' ? computeDivergingMaxAbs(activePaint.values) : 1),
     [activePaint],
   )
+
+  // The component with the strongest measurement gets a halo and a "Strongest signal" tag.
+  // Prefer the check's own choice (it breaks ties the way the finding does); while a run is
+  // still measuring, show the "Measuring" marker instead of guessing.
+  const checkPeakId = useAppStore((s) => s.peakComponentId)
+  const scanningComponentId = useAppStore((s) => s.scanningComponentId)
+  const peakId = useMemo(() => {
+    if (checkPeakId) return checkPeakId
+    if (scanningComponentId) return null
+    if (!paintValues) return null
+    let best: string | null = null
+    let bestVal = -Infinity
+    for (const [id, raw] of Object.entries(paintValues)) {
+      const v = scale === 'diverging' ? Math.abs(raw) : raw
+      if (v > bestVal) {
+        bestVal = v
+        best = id
+      }
+    }
+    return best
+  }, [paintValues, scale, checkPeakId, scanningComponentId])
 
   const expandedSet = useMemo(() => new Set(expandedLayerIds), [expandedLayerIds])
   const focusedSet = useMemo(() => new Set(focusedComponentIds), [focusedComponentIds])
@@ -106,17 +126,6 @@ export function ModelScene({ modelMap }: ModelSceneProps) {
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-      {focusedComponentIds.length > 0 && focusReason && (
-        <div className="focus-banner" role="status">
-          <div style={{ fontWeight: 600 }}>
-            Focused: {focusedComponentIds.join(', ')}
-          </div>
-          <div style={{ color: 'var(--text-secondary)', marginTop: '0.15rem' }}>
-            {focusReason}
-          </div>
-        </div>
-      )}
-
       {selectedComp && (
         <div className="component-detail-card" aria-label="Selected component details">
           <div
@@ -233,6 +242,8 @@ export function ModelScene({ modelMap }: ModelSceneProps) {
                 maxAbs={maxAbs}
                 selectedComponentId={selectedComponentId}
                 focusedSet={focusedSet}
+                peakId={peakId}
+                scanningId={scanningComponentId}
                 reducedMotion={reducedMotion}
                 onSelect={handleSelectComponent}
               />
@@ -247,6 +258,8 @@ export function ModelScene({ modelMap }: ModelSceneProps) {
                 maxAbs={maxAbs}
                 selectedComponentId={selectedComponentId}
                 focusedSet={focusedSet}
+                peakId={peakId}
+                scanningId={scanningComponentId}
                 reducedMotion={reducedMotion}
                 onToggleAndSelectLayer={handleToggleAndSelectLayer}
                 onSelectSubcomponent={handleSelectComponent}
@@ -261,6 +274,8 @@ export function ModelScene({ modelMap }: ModelSceneProps) {
                 maxAbs={maxAbs}
                 selectedComponentId={selectedComponentId}
                 focusedSet={focusedSet}
+                peakId={peakId}
+                scanningId={scanningComponentId}
                 reducedMotion={reducedMotion}
                 onSelect={handleSelectComponent}
               />

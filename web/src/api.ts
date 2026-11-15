@@ -167,10 +167,59 @@ export async function fetchModels(): Promise<ModelSummary[]> {
   return unwrapList<ModelSummary>(raw, 'models')
 }
 
-/** The model loaded in the engine's current session, or null when none is loaded yet. */
-export async function fetchActiveModelId(): Promise<string | null> {
-  const raw = await requestJson<{ model_id?: string | null }>('/api/models/active')
-  return raw && typeof raw.model_id === 'string' && raw.model_id ? raw.model_id : null
+export interface ActiveModelState {
+  /** The model shown in this engine session, or null when none is loaded yet. */
+  modelId: string | null
+  /** Models currently being loaded. */
+  loading: string[]
+  /** Checkpoint series of the current check, if any. */
+  seriesId: string | null
+}
+
+export async function fetchActiveModel(): Promise<ActiveModelState> {
+  const raw = await requestJson<{
+    model_id?: string | null
+    loading?: unknown
+    series_id?: string | null
+  }>('/api/models/active')
+  const modelId = raw && typeof raw.model_id === 'string' && raw.model_id ? raw.model_id : null
+  const loading = Array.isArray(raw?.loading)
+    ? raw.loading.filter((s): s is string => typeof s === 'string')
+    : []
+  const seriesId =
+    raw && typeof raw.series_id === 'string' && raw.series_id ? raw.series_id : null
+  return { modelId, loading, seriesId }
+}
+
+const DEMO_MODEL_NAMES: ReadonlyArray<readonly [string, string]> = [
+  ['qwen2.5-1.5b-sleeper-canary', 'Qwen2.5-1.5B (community fine-tune)'],
+]
+
+/**
+ * A plain name for a model, for display. Internal IDs such as
+ * "hf:Qwen/Qwen2.5-1.5B-Instruct@main+adapter:my_adapter" become
+ * "Qwen2.5-1.5B-Instruct (fine-tuned)".
+ */
+export function displayModelName(modelId: string): string {
+  // Demo test models whose repository names describe the problem built into them.
+  // Show a neutral name so the check, not the name, reveals what is wrong.
+  const lower = modelId.toLowerCase()
+  for (const [needle, label] of DEMO_MODEL_NAMES) {
+    if (lower.includes(needle)) return label
+  }
+  let id = modelId.replace(/^(hf|local):/, '')
+  let fineTuned = false
+  const adapterIdx = id.indexOf('+adapter:')
+  if (adapterIdx >= 0) {
+    id = id.slice(0, adapterIdx)
+    fineTuned = true
+  }
+  id = id.replace(/@[^/]*$/, '')
+  // Local folders look like "Org__Name/main"; drop the trailing revision folder.
+  id = id.replace(/\/(main|default)$/, '')
+  const last = id.split('/').pop() ?? id
+  const name = last.includes('__') ? last.split('__').pop() ?? last : last
+  return fineTuned ? `${name} (fine-tuned)` : name
 }
 
 export async function fetchModelMap(modelId: string): Promise<ModelMap> {

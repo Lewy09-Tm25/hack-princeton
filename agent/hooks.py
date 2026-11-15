@@ -27,11 +27,23 @@ def _resolve_log_paths(workspace: Path, tool_input: dict[str, Any]) -> list[Path
     return paths
 
 
+PLAN_CHANGE_TOOL_NAMES = "mcp__engine__draft_plan|mcp__engine__revise_plan"
+
+
+def _approved_in_chat(tool_input: dict[str, Any], turn_state: dict[str, int] | None) -> bool:
+    """True when the agent reports the user's yes, and that yes came in a later user message
+    than the one in which the plan was last drafted or changed."""
+    if turn_state is None or tool_input.get("approved_by_user") is not True:
+        return False
+    return turn_state.get("turn", 0) > turn_state.get("last_plan_change_turn", -1)
+
+
 def make_plan_approval_hook(
     workspace: Path,
     *,
     record: Record | None = None,
     max_estimate_seconds: float = DEFAULT_MAX_ESTIMATE_SECONDS,
+    turn_state: dict[str, int] | None = None,
 ) -> HookCallback:
     """Create a `PreToolUse` hook blocking `mcp__engine__run_plan` unless approved."""
 
@@ -75,10 +87,21 @@ def make_plan_approval_hook(
                 }
             }
 
+        if not plan.approved and _approved_in_chat(tool_input, turn_state):
+            # The user said yes in the chat, in a message sent after the latest version of
+            # the plan was drafted. Record that approval in the engine, then continue.
+            rec = _get_record()
+            try:
+                plan = rec.approve_plan(str(plan_id))
+            finally:
+                if record is None:
+                    rec.close()
+
         if not plan.approved:
             reason = (
                 f"Plan {plan.plan_id!r} (version {plan.version}) has not been approved by the "
-                "user yet. Ask the user for approval first."
+                "user yet. Show the user the plan and wait for their reply. When they clearly "
+                "say to go ahead, call run_plan again with approved_by_user=true."
             )
             for log_path in _resolve_log_paths(workspace, tool_input):
                 append_audit_log(
@@ -96,8 +119,13 @@ def make_plan_approval_hook(
                 }
             }
 
+        # The user's yes in the chat covers a long run too: the tool does not show run-time
+        # estimates (they are not reliable), so a second "confirm the long run" question
+        # would ask the user to confirm something they were never shown.
         confirmed_long = bool(
-            tool_input.get("confirm_long_run") or plan.user_context.get("confirm_long_run")
+            tool_input.get("confirm_long_run")
+            or plan.user_context.get("confirm_long_run")
+            or _approved_in_chat(tool_input, turn_state)
         )
         if plan.estimate_seconds > max_estimate_seconds and not confirmed_long:
             reason = (
@@ -162,8 +190,23 @@ def build_pre_tool_use_hooks(
     *,
     record: Record | None = None,
     max_estimate_seconds: float = DEFAULT_MAX_ESTIMATE_SECONDS,
+    turn_state: dict[str, int] | None = None,
 ) -> list[HookMatcher]:
-    """Return `HookMatcher` list enforcing `run_plan` approval and logging every tool call."""
+    """Return `HookMatcher` list enforcing `run_plan` approval and logging every tool call.
+
+    `turn_state` is shared with the chat session: `turn` counts the user's messages, and
+    `last_plan_change_turn` is the turn in which a plan was last drafted or changed.
+    """
+
+    async def note_plan_change(
+        input_data: dict[str, Any],
+        tool_use_id: str | None,
+        context: Any,
+    ) -> dict[str, Any]:
+        if turn_state is not None:
+            turn_state["last_plan_change_turn"] = turn_state.get("turn", 0)
+        return {}
+
     async def only_reviewer_subagent(
         input_data: dict[str, Any],
         tool_use_id: str | None,
@@ -190,12 +233,17 @@ def build_pre_tool_use_hooks(
             hooks=[only_reviewer_subagent],
         ),
         HookMatcher(
+            matcher=PLAN_CHANGE_TOOL_NAMES,
+            hooks=[note_plan_change],
+        ),
+        HookMatcher(
             matcher=RUN_PLAN_TOOL_NAME,
             hooks=[
                 make_plan_approval_hook(
                     workspace,
                     record=record,
                     max_estimate_seconds=max_estimate_seconds,
+                    turn_state=turn_state,
                 )
             ],
         ),

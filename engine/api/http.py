@@ -31,7 +31,9 @@ def create_http_router(service: EngineService) -> APIRouter:
     async def active_model() -> dict[str, Any]:
         """The model loaded in this server session, or none. The web app polls this."""
         model_id = service.active_model_id
-        return {"model_id": model_id}
+        loading = list(getattr(service, "loading_sources", []))
+        series_id = getattr(service, "active_series_id", None)
+        return {"model_id": model_id, "loading": loading, "series_id": series_id}
 
     @router.post("/models/load")
     async def load_model_endpoint(body: LoadModelBody) -> dict[str, Any]:

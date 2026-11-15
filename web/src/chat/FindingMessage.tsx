@@ -1,4 +1,5 @@
 import type { ControlResult, Finding, StrengthLevel } from '../contracts'
+import { plainDatasetText } from '../datasetNames'
 import { useAppStore } from '../store'
 
 export interface FindingMessageProps {
@@ -6,14 +7,39 @@ export interface FindingMessageProps {
   onShowEvidence?: (findingId: string) => void
 }
 
+const CHECK_TITLES: Readonly<Record<string, string>> = {
+  sycophancy: 'Sycophancy',
+  refusal: 'Weakened refusals',
+  backdoor: 'Backdoor',
+}
+
+// What each strength means, so a reader does not need to know the scale in advance.
+const STRENGTH_MEANING: Readonly<Record<StrengthLevel, string>> = {
+  established: 'Strongest of three levels: passed every control and every robustness test.',
+  suggestive:
+    'Middle of three levels: passed its controls, but not every robustness test, so treat it as likely rather than proven.',
+  inconclusive:
+    'Weakest of three levels: a required control failed or the effect was too small, so this is not a finding.',
+}
+
+// Plain names for the controls and robustness tests.
+const TEST_NAMES: Readonly<Record<string, string>> = {
+  random_direction: 'stronger than random directions',
+  shuffled_labels: 'stronger than shuffled labels',
+  held_out: 'holds on unseen examples',
+  reference_model: 'differs from the original model',
+  surface_matched_harmless: 'ignores harmless look-alikes',
+  clean_reference_model: 'absent in a clean model',
+  behavioral_confirmation: 'changes the model’s behavior',
+  paraphrase: 'reworded inputs',
+  multilingual: 'another language',
+  multi_turn: 'longer conversations',
+}
+
 function formatOutcome(item: ControlResult): string {
-  const statusLabel =
-    item.passed === true ? 'Pass' : item.passed === false ? 'Fail' : 'Not run'
-  const valPart =
-    item.value !== undefined && item.value !== null && Number.isFinite(item.value)
-      ? ` (${item.value.toFixed(2)})`
-      : ''
-  return `${item.kind}: ${statusLabel}${valPart}`
+  const name = TEST_NAMES[item.kind] ?? item.kind.replace(/_/g, ' ')
+  const status = item.passed === true ? 'passed' : item.passed === false ? 'failed' : 'not run'
+  return `${name}: ${status}`
 }
 
 function strengthBadgeClass(strength: StrengthLevel): string {
@@ -22,27 +48,32 @@ function strengthBadgeClass(strength: StrengthLevel): string {
   return 'badge badge-inconclusive'
 }
 
+/** Reviewer notes without internal prefixes such as "[offline rule audit; …]". */
+function cleanReviewerNotes(notes: string): string {
+  return plainDatasetText(notes.replace(/^\s*\[[^\]]*\]\s*/, '').trim())
+}
+
 export function FindingMessage({ finding, onShowEvidence }: FindingMessageProps) {
   const effectiveStrength: StrengthLevel =
     finding.reviewer_verdict?.lower_strength_to ?? finding.strength
-  const displayClaim = finding.reviewer_verdict?.corrected_claim ?? finding.claim
+  const displayClaim = plainDatasetText(
+    finding.reviewer_verdict?.corrected_claim ?? finding.claim,
+  )
   const isUnverifiedOrPlaceholder = !finding.verified || Boolean(finding.is_placeholder)
+  const verdict = finding.reviewer_verdict
+  const reviewerText = verdict
+    ? (verdict.notes && cleanReviewerNotes(verdict.notes)) ||
+      (verdict.agrees
+        ? 'The wording matches the evidence.'
+        : 'The reviewer adjusted the wording or strength.')
+    : 'Being checked…'
 
   return (
     <div className="msg-card" aria-label={`Finding for ${finding.check}`}>
       <div className="msg-card-header">
-        <h3 className="msg-card-title">Finding: {finding.check}</h3>
+        <h3 className="msg-card-title">{CHECK_TITLES[finding.check] ?? finding.check}</h3>
         <div className="badge-row">
-          <span className={strengthBadgeClass(effectiveStrength)}>
-            strength: {effectiveStrength}
-          </span>
-          <span
-            className={`badge ${
-              finding.maturity === 'established' ? 'badge-established' : 'badge-suggestive'
-            }`}
-          >
-            method: {finding.maturity}
-          </span>
+          <span className={strengthBadgeClass(effectiveStrength)}>{effectiveStrength}</span>
           {isUnverifiedOrPlaceholder && (
             <span className="badge badge-placeholder">unverified / placeholder</span>
           )}
@@ -50,6 +81,7 @@ export function FindingMessage({ finding, onShowEvidence }: FindingMessageProps)
       </div>
 
       <div style={{ fontWeight: 500 }}>{displayClaim}</div>
+      <div className="strength-meaning">{STRENGTH_MEANING[effectiveStrength]}</div>
 
       <dl className="kv-list">
         <dt>Controls</dt>
@@ -59,7 +91,7 @@ export function FindingMessage({ finding, onShowEvidence }: FindingMessageProps)
             : 'None recorded'}
         </dd>
 
-        <dt>Shift tests</dt>
+        <dt>Robustness tests</dt>
         <dd>
           {finding.shift_tests.length > 0
             ? finding.shift_tests.map(formatOutcome).join(' · ')
@@ -69,30 +101,20 @@ export function FindingMessage({ finding, onShowEvidence }: FindingMessageProps)
 
       <div className="card-section">
         <div className="card-section-label">Coverage</div>
-        <div>{finding.coverage}</div>
+        <div>{plainDatasetText(finding.coverage)}</div>
       </div>
 
       <div className="card-section">
         <div className="card-section-label">What this does not show</div>
-        <div>{finding.not_shown}</div>
+        <div>{plainDatasetText(finding.not_shown)}</div>
       </div>
 
       <div className="card-section">
-        <div className="card-section-label">Reviewer notes</div>
-        <div>
-          {finding.reviewer_verdict
-            ? finding.reviewer_verdict.notes ||
-              (finding.reviewer_verdict.agrees
-                ? 'Reviewer agreed that claim wording matches evidence and coverage.'
-                : 'Reviewer adjusted claim strength or wording.')
-            : 'Review pending'}
-        </div>
+        <div className="card-section-label">Independent review</div>
+        <div>{reviewerText}</div>
       </div>
 
-      <div
-        className="card-section"
-        style={{ display: 'flex', justifyContent: 'flex-end' }}
-      >
+      <div className="card-section" style={{ display: 'flex', justifyContent: 'flex-end' }}>
         <button
           type="button"
           className="btn"

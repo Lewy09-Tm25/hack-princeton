@@ -338,6 +338,11 @@ class EngineService:
         # The model most recently loaded in this server session. The web app shows this
         # model, not whatever happens to be stored in the record from earlier sessions.
         self.active_model_id: str | None = None
+        # The checkpoint series of the current check, if any (drives the timeline slider).
+        self.active_series_id: str | None = None
+        # Models currently loading (source names), shown in the web app while it waits.
+        self.loading_sources: list[str] = []
+        self._load_lock = threading.Lock()
         self._job_states: dict[str, dict[str, Any]] = {}
         self._real_job_manager: Any | None = None
         if not stub_mode:
@@ -431,6 +436,8 @@ class EngineService:
         revision: str | None = None,
         adapter: str | None = None,
         allow_remote_code: bool = False,
+        for_comparison: bool = False,
+        allow_download: bool = False,
     ) -> dict[str, Any]:
         args = {
             "source": source,
@@ -447,16 +454,30 @@ class EngineService:
                 )
                 from engine.modelmap.build import build_model_map  # type: ignore[import-not-found]
 
-                loaded = real_load(
-                    source=source,
-                    revision=revision,
-                    allow_remote_code=allow_remote_code,
-                    adapter=adapter,
-                )
-                mmap = build_model_map(loaded)
+                # One load at a time: two large models loading together compete for CPU
+                # and memory and both take far longer. The web app shows what is loading.
+                self.loading_sources.append(source)
+                try:
+                    with self._load_lock:
+                        loaded = real_load(
+                            source=source,
+                            revision=revision,
+                            allow_remote_code=allow_remote_code,
+                            adapter=adapter,
+                            # Never download silently: the user must approve downloads.
+                            allow_download=allow_download,
+                        )
+                        mmap = build_model_map(loaded)
+                finally:
+                    self.loading_sources.remove(source)
                 self.record.save_model_map(mmap)
                 self._loaded_models[mmap.model_id] = loaded
-                self.active_model_id = mmap.model_id
+                # A newly loaded model replaces the one on screen, except a model loaded only
+                # as a comparison. draft_plan also points the view at the checked model.
+                if not for_comparison or self.active_model_id is None:
+                    if self.active_model_id != mmap.model_id:
+                        self.active_series_id = None
+                    self.active_model_id = mmap.model_id
                 out = {
                     "model_id": mmap.model_id,
                     "source": source,
@@ -478,7 +499,8 @@ class EngineService:
         if adapter:
             mmap = mmap.model_copy(update={"model_id": f"{mmap.model_id}+adapter:{adapter}"})
         self.record.save_model_map(mmap)
-        self.active_model_id = mmap.model_id
+        if not for_comparison or self.active_model_id is None:
+            self.active_model_id = mmap.model_id
         out = {
             "model_id": mmap.model_id,
             "source": source,
@@ -706,6 +728,12 @@ class EngineService:
     ) -> dict[str, Any]:
         if check not in _CHECK_CATALOG and self._get_real_check(check) is None:
             raise KeyError(f"Unknown risk check: {check!r}")
+
+        # Point the web app's view at the model being checked, not the reference model,
+        # and at its checkpoint series when the check runs over one.
+        if model_id in self._loaded_models or self.record.get_model_map(model_id) is not None:
+            self.active_model_id = model_id
+        self.active_series_id = series_id
 
         ctx = dict(user_context or {})
         mmap = self.record.get_model_map(model_id)
@@ -1325,7 +1353,7 @@ class EngineService:
     def view_focus(self, component_ids: list[str], reason: str) -> dict[str, Any]:
         ev = Event(
             type="focus",
-            payload={"component_ids": list(component_ids), "reason": reason},
+            payload={"component_ids": list(component_ids), "reason": reason, "source": "agent"},
         )
         self.event_bus.publish("view", ev)
         out = {"ok": True, "component_ids": list(component_ids)}
@@ -1588,8 +1616,15 @@ def register_mcp_tools(mcp: FastMCP, service: EngineService) -> None:
         revision: str | None = None,
         adapter: str | None = None,
         allow_remote_code: bool = False,
+        for_comparison: bool = False,
+        allow_download: bool = False,
     ) -> dict[str, Any]:
-        """Load a model safely (safetensors only by default) and build its structural map."""
+        """Load a model safely (safetensors only by default) and build its structural map.
+
+        Set for_comparison=true when loading a reference model to compare against; it then
+        does not replace the model shown in the web app. Models not on this machine are
+        refused unless allow_download=true, which needs the user's explicit approval.
+        """
         import functools
 
         # Loading takes seconds to minutes on CPU. Run it in a worker thread so the server
@@ -1601,6 +1636,8 @@ def register_mcp_tools(mcp: FastMCP, service: EngineService) -> None:
                 revision=revision,
                 adapter=adapter,
                 allow_remote_code=allow_remote_code,
+                for_comparison=for_comparison,
+                allow_download=allow_download,
             )
         )
 

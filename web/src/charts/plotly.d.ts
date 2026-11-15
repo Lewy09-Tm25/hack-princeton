@@ -34,6 +34,7 @@ declare module 'plotly.js' {
       config?: PlotlyConfig,
     ) => Promise<PlotlyHTMLElement>
     purge: (root: HTMLElement) => void
+    Plots?: { resize: (root: HTMLElement) => void }
   }
 
   const Plotly: PlotlyModule

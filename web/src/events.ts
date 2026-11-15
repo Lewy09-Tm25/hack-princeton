@@ -1,5 +1,5 @@
 import { isValidEvent, type TypedEvent } from './contracts'
-import { fetchFindings, getAuthToken } from './api'
+import { displayModelName, fetchFindings, getAuthToken } from './api'
 import { useAppStore } from './store'
 
 export interface SocketLike {
@@ -94,11 +94,14 @@ export class EventsClient {
         try {
           const allFindings = await fetchFindings()
           const store = useAppStore.getState()
-          for (const f of allFindings) {
-            store.upsertFinding(f)
-          }
+          // Add only the finding this event is about. The engine's record also holds
+          // findings from earlier sessions, which do not belong in this conversation.
           const matched = allFindings.find((f) => f.finding_id === findingId)
           if (matched) {
+            store.upsertFinding(matched)
+            // Remember which model it was about, for the Evidence panel's list of findings.
+            const shownModel = store.modelMap?.model_id
+            if (shownModel) store.setFindingModelName(matched.finding_id, displayModelName(shownModel))
             const alreadyInChat = store.chatMessages.some(
               (m) => m.kind === 'finding' && m.findingId === matched.finding_id,
             )

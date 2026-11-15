@@ -52,8 +52,21 @@ class RunContext:
         self._manager = manager
         self._cancel_event = cancel_event
 
+    def report_sub_progress(self, what: str, done: int, total: int) -> None:
+        """Called from inside long steps (each batch, each generated token): stop promptly
+        if the user asked to stop. No progress events are sent from here."""
+        from engine.blocks.progress import StopRequested
+
+        if self._cancel_event.is_set():
+            raise StopRequested("Stopped by user")
+
     def emit(self, event: Event) -> None:
         """Publish a live event (`progress`, `paint`, `focus`, `timeline`, `finding`)."""
+        if event.type == "focus":
+            # Mark focus events that come from a running check: they name the check's own
+            # strongest component, which the web app highlights. Focus events from the agent
+            # (what it is talking about) are marked "agent" instead.
+            event = event.model_copy(update={"payload": {**event.payload, "source": "check"}})
         self._manager._record_event(self.job_id, event)
 
     def ask(self, question: str) -> str:
@@ -334,7 +347,10 @@ class JobManager:
 
         try:
             check = self._check_resolver(entry.plan.check)
-            rows = check.run(entry.plan, ctx)
+            from engine.blocks.progress import progress_reporter
+
+            with progress_reporter(ctx.report_sub_progress):
+                rows = check.run(entry.plan, ctx)
             result_list = list(rows or [])
             with self._lock:
                 entry.results = result_list
@@ -388,3 +404,11 @@ class JobManager:
                 review_run_findings_sync(job_id, self.record)
             except Exception:  # noqa: BLE001
                 pass
+            else:
+                # The review may have changed a finding's wording or strength. Announce the
+                # findings again so clients show the reviewed version, not the draft.
+                for finding in self.record.get_findings(job_id) or []:
+                    self.event_bus.publish(
+                        job_id,
+                        Event(type="finding", payload={"finding_id": finding.finding_id}),
+                    )

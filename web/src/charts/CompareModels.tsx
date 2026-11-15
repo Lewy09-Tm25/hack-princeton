@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ResultRecord } from '../contracts'
-import { OKABE_ITO, renderPlotlySafely } from './plotlyClient'
+import { OKABE_ITO, keepPlotSized, renderPlotlySafely } from './plotlyClient'
 
 export interface ModelComparisonPair {
   id: string
@@ -110,6 +110,7 @@ export function CompareModels({
 }: CompareModelsProps) {
   const pairs = useMemo(() => extractModelComparisonPairs(results), [results])
   const plotContainerRef = useRef<HTMLDivElement | null>(null)
+
   const [plotlyReady, setPlotlyReady] = useState(false)
 
   useEffect(() => {
@@ -140,12 +141,14 @@ export function CompareModels({
 
     void renderPlotlySafely(el, traces, {
       barmode: 'group',
-      height: 210,
+      height: 280,
       yaxis: { title: { text: 'Value' } },
-      legend: { orientation: 'h', y: 1.16, x: 0 },
+      legend: { orientation: 'h', x: 0, y: -0.32, yanchor: 'top' },
+        margin: { l: 52, r: 18, t: 16, b: 96 },
     }).then((teardown) => {
       if (cancelled) {
-        teardown?.()
+        // A newer draw has already taken over this chart box. Do not clear the box here:
+        // that would wipe the newer chart and leave the panel blank.
         return
       }
       cleanup = teardown
@@ -159,6 +162,15 @@ export function CompareModels({
   }, [pairs, modelLabel, referenceLabel])
 
   const isPlaceholder = pairs.some((p) => p.isPlaceholder)
+
+  // Redraw at the right size once the chart box exists and is visible, and whenever the
+  // panel is resized. The box only exists once there is data, so re-attach when it appears.
+  const hasChartData = pairs.length > 0
+  useEffect(() => {
+    const el = plotContainerRef.current
+    if (!el || !hasChartData) return
+    return keepPlotSized(el)
+  }, [hasChartData, plotlyReady])
 
   return (
     <section className="chart-card" aria-label="Model versus reference comparison">

@@ -66,7 +66,11 @@ class ChatSession:
             auth_token=auth_token,
             betas=betas,
         )
-        self.pre_tool_hooks = build_pre_tool_use_hooks(self.workspace, record=self.record)
+        # Counts the user's messages so a "yes" in chat can approve a plan drafted earlier.
+        self.turn_state: dict[str, int] = {"turn": 0, "last_plan_change_turn": -1}
+        self.pre_tool_hooks = build_pre_tool_use_hooks(
+            self.workspace, record=self.record, turn_state=self.turn_state
+        )
         self.options: ClaudeAgentOptions = build_agent_options(
             self.settings,
             pre_tool_hooks=self.pre_tool_hooks,
@@ -113,6 +117,7 @@ class ChatSession:
         context: dict[str, Any] | None = None,
     ) -> AsyncIterator[dict[str, Any]]:
         """Stream message parts (`text`, `plan`, `question`, `finding`, `tool_activity`)."""
+        self.turn_state["turn"] = self.turn_state.get("turn", 0) + 1
         formatted = _format_user_message(user_text, context)
 
         if self.scripted_driver is not None:
@@ -192,6 +197,14 @@ class ChatSession:
                             "tool": str(block.name),
                             "status": "called",
                         }
+
+    async def interrupt(self) -> None:
+        """Stop the agent's current reply, as a chat stop button does."""
+        if self._sdk_client is not None:
+            try:
+                await self._sdk_client.interrupt()
+            except Exception:  # noqa: BLE001 - nothing to stop, or already finished
+                pass
 
     async def close(self) -> None:
         """Disconnect any live SDK client and close owned resources."""

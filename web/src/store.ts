@@ -65,6 +65,10 @@ export interface AppState {
   currentCheckpointId: string | null
   paintByCheckpoint: Record<string, PaintEntry>
   focusedComponentIds: string[]
+  /** The strongest component as chosen by the check itself (from its own focus event). */
+  peakComponentId: string | null
+  /** The layer a running check is measuring right now, from its progress messages. */
+  scanningComponentId: string | null
   focusReason: string | null
   selectedComponentId: string | null
   expandedLayerIds: string[]
@@ -72,6 +76,8 @@ export interface AppState {
   jobs: Record<string, JobState>
   plans: Record<string, Plan>
   findings: Finding[]
+  /** Display name of the model each finding was about, recorded when it arrived. */
+  findingModelNames: Record<string, string>
   resultsByRun: Record<string, ResultRecord[]>
   examplesByRun: Record<string, SpotCheckExample[]>
   chatMessages: ChatMessage[]
@@ -92,6 +98,7 @@ export interface AppState {
   upsertPlan: (plan: Plan) => string
   markPlanApproved: (planId: string) => void
   upsertFinding: (finding: Finding) => void
+  setFindingModelName: (findingId: string, modelName: string) => void
   setFindings: (findings: Finding[]) => void
   setResultsForRun: (runId: string, results: ResultRecord[]) => void
   setExamplesForRun: (runId: string, examples: SpotCheckExample[]) => void
@@ -242,6 +249,8 @@ function createInitialDataState(overrides?: Partial<Pick<AppState, 'isFakeMode' 
     currentCheckpointId: null as string | null,
     paintByCheckpoint: {} as Record<string, PaintEntry>,
     focusedComponentIds: [] as string[],
+    peakComponentId: null as string | null,
+    scanningComponentId: null as string | null,
     focusReason: null as string | null,
     selectedComponentId: null as string | null,
     expandedLayerIds: [] as string[],
@@ -249,6 +258,7 @@ function createInitialDataState(overrides?: Partial<Pick<AppState, 'isFakeMode' 
     jobs: {} as Record<string, JobState>,
     plans: {} as Record<string, Plan>,
     findings: [] as Finding[],
+    findingModelNames: {} as Record<string, string>,
     resultsByRun: {} as Record<string, ResultRecord[]>,
     examplesByRun: {} as Record<string, SpotCheckExample[]>,
     chatMessages: [] as ChatMessage[],
@@ -266,13 +276,26 @@ export const useAppStore = create<AppState>((set) => ({
   ...createInitialDataState(),
 
   setModelMap: (modelMap) =>
-    set(() => ({
-      modelMap,
-      expandedLayerIds: [],
-      selectedComponentId: null,
-      focusedComponentIds: [],
-      focusReason: null,
-    })),
+    set((state) => {
+      const switched = (state.modelMap?.model_id ?? null) !== (modelMap?.model_id ?? null)
+      return {
+        modelMap,
+        expandedLayerIds: [],
+        selectedComponentId: null,
+        focusedComponentIds: [],
+        focusReason: null,
+        // A different model: the previous model's colours and timeline no longer apply.
+        ...(switched
+          ? {
+              paintByCheckpoint: {},
+              series: null,
+              currentCheckpointId: null,
+              peakComponentId: null,
+              scanningComponentId: null,
+            }
+          : {}),
+      }
+    }),
 
   setSeries: (series) =>
     set(() => ({
@@ -353,6 +376,13 @@ export const useAppStore = create<AppState>((set) => ({
         }),
       }
     }),
+
+  setFindingModelName: (findingId, modelName) =>
+    set((state) =>
+      state.findingModelNames[findingId]
+        ? {}
+        : { findingModelNames: { ...state.findingModelNames, [findingId]: modelName } },
+    ),
 
   upsertFinding: (finding) =>
     set((state) => {
@@ -482,10 +512,15 @@ export const useAppStore = create<AppState>((set) => ({
               parentLayersToExpand.add(parentLayer)
             }
           }
+          const fromCheck = (event.payload as { source?: string }).source === 'check'
           return {
             focusedComponentIds: [...event.payload.component_ids],
             focusReason: event.payload.reason,
             expandedLayerIds: Array.from(parentLayersToExpand),
+            // A check's focus names its own strongest component: highlight that one.
+            ...(fromCheck
+              ? { peakComponentId: event.payload.component_ids[0] ?? null, scanningComponentId: null }
+              : {}),
           }
         }
         case 'paint': {
@@ -509,7 +544,13 @@ export const useAppStore = create<AppState>((set) => ({
         case 'progress': {
           const { job_id, step, total, message } = event.payload
           const prev = state.jobs[job_id]
+          // Progress messages name the layer being measured ("... at L5"): mark it in the view.
+          const scanned = typeof message === 'string' ? /\bat (L\d+)\b/.exec(message) : null
+          // A new run starts: forget the previous run's strongest component.
+          const isNewJob = prev === undefined
           return {
+            ...(scanned ? { scanningComponentId: scanned[1] } : {}),
+            ...(isNewJob ? { peakComponentId: null } : {}),
             jobs: {
               ...state.jobs,
               [job_id]: {
@@ -576,6 +617,8 @@ export const useAppStore = create<AppState>((set) => ({
               ...state.jobs,
               [job_id]: nextJob,
             },
+            // The run has finished (or paused): stop marking a layer as being scanned.
+            ...(status !== 'running' && status !== 'queued' ? { scanningComponentId: null } : {}),
           }
         }
       }
