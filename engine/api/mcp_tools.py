@@ -1558,6 +1558,22 @@ class EngineService:
         return out
 
 
+async def _run_off_event_loop(call: Any) -> Any:
+    """Run a slow blocking call in a worker thread so the server keeps responding.
+
+    When no event loop is running (some tests drive the tools by hand), call it directly.
+    """
+    import asyncio
+
+    import anyio
+
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        return call()
+    return await anyio.to_thread.run_sync(call)
+
+
 def register_mcp_tools(mcp: FastMCP, service: EngineService) -> None:
     """Register all 23 engine MCP tools on `mcp`."""
 
@@ -1576,11 +1592,9 @@ def register_mcp_tools(mcp: FastMCP, service: EngineService) -> None:
         """Load a model safely (safetensors only by default) and build its structural map."""
         import functools
 
-        import anyio
-
         # Loading takes seconds to minutes on CPU. Run it in a worker thread so the server
         # (web app, chat, other tool calls) keeps responding meanwhile.
-        return await anyio.to_thread.run_sync(
+        return await _run_off_event_loop(
             functools.partial(
                 service.load_model,
                 source=source,
@@ -1610,9 +1624,7 @@ def register_mcp_tools(mcp: FastMCP, service: EngineService) -> None:
         """Register an ordered series of pretraining checkpoints or post-training stages."""
         import functools
 
-        import anyio
-
-        return await anyio.to_thread.run_sync(
+        return await _run_off_event_loop(
             functools.partial(
                 service.register_series,
                 kind=kind,
