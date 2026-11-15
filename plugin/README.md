@@ -17,7 +17,7 @@ This folder packages the local interpretability engine as a Claude Code plugin s
    uv run --locked --all-extras tool serve --workspace ./workspace
    ```
 
-2. Open the web app (`pnpm --dir web dev` at `http://localhost:5173`) if you want to watch the 3D layer stack update in real time.
+2. Open the web app at `http://127.0.0.1:8000` (served by `tool serve` itself) if you want to watch the 3D layer stack update in real time.
 
 3. Launch Claude Code with the bundled plugin directory:
 
@@ -28,6 +28,8 @@ This folder packages the local interpretability engine as a Claude Code plugin s
    Because `plugin/.mcp.json` connects over HTTP to `http://127.0.0.1:8000/mcp`, any investigation started in Claude Code animates the open 3D browser tab and writes runs, findings, and HTML reports into `./workspace`.
 
    *(You can also register the HTTP MCP server directly without `--plugin-dir` via `claude mcp add --transport http model-safety-engine http://127.0.0.1:8000/mcp`; if `tool serve --require-token` was used, include `--header "Authorization: Bearer <token>"`.)*
+
+If Claude Code reports that it cannot connect to `model-safety-engine`, `tool serve` is not running. Start it (step 1), or use the standalone mode below.
 
 ## Alternative: Headless stdio MCP mode (without `tool serve`)
 

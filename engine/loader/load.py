@@ -15,17 +15,17 @@ from engine.loader.registry import get_loaded_model, register_loaded_model
 
 UNSAFE_WEIGHT_EXTENSIONS = {".bin", ".pt", ".pth", ".ckpt", ".pkl", ".pickle"}
 
-PLACEHOLDER_PATH_MARKERS = (
-    "tiny",
-    "placeholder",
-    "synthetic",
-    "fixture",
-    "pytest",
-    "tmp",
-    "temp",
-    "stub",
-    "mock",
-    "toy",
+# Whole words in the model's own name that mark it as a stand-in, not a real model.
+# Only the source name and the model folder's own name are checked, never the full path,
+# so a real model kept under a temp folder, or named like "TinyLlama", is not affected.
+PLACEHOLDER_NAME_WORDS = frozenset(
+    {
+        "placeholder",
+        "synthetic",
+        "fixture",
+        "stub",
+        "mock",
+    }
 )
 
 
@@ -134,14 +134,67 @@ def _verify_folder_safety(
         if unsafe_files:
             listed = ", ".join(sorted(unsafe_files)[:5])
             raise ValueError(
-                f"Refusing to load unsafe pickle/binary weight files ({listed}) in '{folder}'. "
-                "Only .safetensors weights are allowed unless allow_unsafe_weights=True."
+                f"Refusing to load pickle-based weight files ({listed}) in '{folder}'. "
+                "These files can run code when loaded, so the tool only loads .safetensors "
+                "weights. If you trust these weights, convert them to safetensors first; see "
+                "'Bringing your own model' in the README."
             )
         if not safetensor_files:
             raise ValueError(
-                f"No .safetensors weight files found in '{folder}'. "
-                "Only .safetensors weights are allowed unless allow_unsafe_weights=True."
+                f"No .safetensors weight files found in '{folder}'. The tool only loads "
+                ".safetensors weights. If the model is stored as .bin or .pt files and you "
+                "trust them, convert them to safetensors first; see 'Bringing your own model' "
+                "in the README."
             )
+
+
+def _count_safetensors_params(folder: Path) -> int | None:
+    """Count parameters from safetensors headers without loading any weights."""
+    try:
+        from safetensors import safe_open
+    except ImportError:
+        return None
+    total = 0
+    files = sorted(folder.glob("*.safetensors"))
+    if not files:
+        return None
+    try:
+        for path in files:
+            with safe_open(str(path), framework="pt") as handle:
+                for name in handle.keys():
+                    count = 1
+                    for dim in handle.get_slice(name).get_shape():
+                        count *= int(dim)
+                    total += count
+    except Exception:
+        return None
+    return total
+
+
+def _refuse_unsupported_plan(model_label: str, n_params: int, load_plan: LoadPlan) -> None:
+    """Stop before loading when the model would need splitting or quantization.
+
+    Splitting a model across GPUs and quantizing it are not implemented yet. Loading
+    anyway would leave the model unsplit and unquantized while results claimed otherwise,
+    so the tool refuses with a clear message instead.
+    """
+    if not load_plan.fits:
+        raise MemoryError(
+            f"Model '{model_label}' (~{n_params / 1e9:.1f}B parameters) does not fit in the "
+            f"memory available on {load_plan.device}. " + "; ".join(load_plan.warnings)
+        )
+    if load_plan.device_map is not None or load_plan.quantize is not None:
+        needs = []
+        if load_plan.device_map is not None:
+            needs.append("splitting across several GPUs")
+        if load_plan.quantize is not None:
+            needs.append(f"{load_plan.quantize} quantization")
+        raise MemoryError(
+            f"Model '{model_label}' (~{n_params / 1e9:.1f}B parameters) does not fit on a "
+            f"single {load_plan.device} device at full precision and would need "
+            f"{' and '.join(needs)}. The tool does not support that yet. Use a machine with "
+            "more GPU memory, or a smaller model."
+        )
 
 
 def _build_model_id(
@@ -230,12 +283,15 @@ def _detect_placeholder(
     adapter: str | None,
     n_params: int,
 ) -> bool:
-    check_text = " ".join(
-        part.lower()
-        for part in (source, str(folder), adapter or "")
-        if part
-    )
-    if any(marker in check_text for marker in PLACEHOLDER_PATH_MARKERS):
+    import re
+
+    names: list[str] = [Path(source).name or source, folder.name]
+    if adapter:
+        names.append(Path(adapter).name or adapter)
+    words: set[str] = set()
+    for name in names:
+        words.update(w for w in re.split(r"[^a-z0-9]+", name.lower()) if w)
+    if words & PLACEHOLDER_NAME_WORDS:
         return True
     # Tiny config-generated random-weight models have far fewer parameters than real LLMs.
     if n_params < 5_000_000:
@@ -294,6 +350,13 @@ def load_model(
     )
 
     profile = detect()
+
+    # Check memory before loading anything, from the weight file headers.
+    estimated_params = _count_safetensors_params(folder)
+    if estimated_params:
+        early_plan = plan_for_model(estimated_params, profile)
+        _refuse_unsupported_plan(model_id, estimated_params, early_plan)
+
     config = AutoConfig.from_pretrained(str(folder), trust_remote_code=allow_remote_code)
 
     tok_cfg_path = folder / "tokenizer_config.json"
@@ -342,12 +405,8 @@ def load_model(
 
     n_params = sum(int(p.numel()) for p in hf_model.parameters())
     load_plan = plan_for_model(n_params, profile)
-    if not load_plan.fits:
-        warnings_str = "; ".join(load_plan.warnings)
-        raise MemoryError(f"Model '{model_id}' exceeds available memory: {warnings_str}")
-
-    if load_plan.device_map is None and load_plan.quantize is None:
-        hf_model = hf_model.to(device=load_plan.device, dtype=load_plan.dtype)
+    _refuse_unsupported_plan(model_id, n_params, load_plan)
+    hf_model = hf_model.to(device=load_plan.device, dtype=load_plan.dtype)
     hf_model.eval()
 
     nn_wrapper = nnsight.TransformersModel(
@@ -389,10 +448,7 @@ def load_custom_module(
     profile = detect()
     n_params = sum(int(p.numel()) for p in module.parameters())
     load_plan = plan_for_model(n_params, profile)
-    if not load_plan.fits:
-        warnings_str = "; ".join(load_plan.warnings)
-        raise MemoryError(f"Custom module '{model_id}' exceeds available memory: {warnings_str}")
-
+    _refuse_unsupported_plan(model_id, n_params, load_plan)
     module = module.to(device=load_plan.device)
     module.eval()
 
