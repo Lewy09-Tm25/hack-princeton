@@ -62,22 +62,22 @@ pnpm --dir web run build
    uv run --locked --all-extras tool doctor --workspace ./workspace
    ```
 
-2. **Start the local engine server (FastAPI HTTP + streamable HTTP MCP + WebSocket events):**
+2. **Add your Anthropic API key** (needed for the chat in the web app; Claude Code works without it). Create a file named `.env` in the project folder (it is git-ignored) containing one line:
+
+   ```
+   ANTHROPIC_API_KEY=your-key-here
+   ```
+
+3. **Start the tool.** One command starts the engine, the MCP endpoint and the web app:
 
    ```bash
    uv run --locked --all-extras tool serve --workspace ./workspace
    ```
 
-   By default this listens on `http://127.0.0.1:8000` (with MCP mounted at `http://127.0.0.1:8000/mcp`).
-
-3. **Start the 3D web interface in a second terminal:**
-
-   ```bash
-   pnpm --dir web dev
-   ```
-
-   - Open `http://localhost:5173` to use the live workspace connected to `tool serve`. Set `ANTHROPIC_API_KEY` in the environment running `tool serve` to enable the built-in conversational agent (`claude-opus-5-5`).
-   - Open `http://localhost:5173/?fake=1` to preview the 3D layer stack, attention/MLP expansion, timeline slider, and Plotly evidence charts offline using clearly marked fixture replay events without loading model weights.
+   - Open `http://127.0.0.1:8000`. The app starts with no model loaded; tell the assistant which model to check, or ask which demo models are available. The chat uses `claude-sonnet-5-5`.
+   - MCP clients such as Claude Code connect to `http://127.0.0.1:8000/mcp`.
+   - Open `http://127.0.0.1:8000/?fake=1` to preview the 3D view with clearly marked placeholder events and no model weights.
+   - For web development with live reload, run `pnpm --dir web dev` alongside `tool serve` and open `http://localhost:5173`.
 
 4. **Other CLI commands:**
 
@@ -109,6 +109,49 @@ The engine is independent of the web chat UI and exposes all 23 tools over MCP s
   ```
 
   You can also copy the exact command (including any bearer token when `--require-token` is enabled) from the web app's Claude Code setup panel (`/api/setup/claude-code`). See [`plugin/README.md`](plugin/README.md) for details.
+
+---
+
+## Bringing your own model
+
+The demo uses small public test models because this build was made on a laptop without a GPU. The engine itself is not tied to them: it maps the layers of any decoder-only transformer it can load, and the checks run on whatever model you point them at.
+
+### What you need
+
+- **The model:** a decoder-only transformer (Llama, Qwen, Mistral, Gemma, GPT-NeoX and similar families) as a Hugging Face model ID, a local folder, or a base model plus a LoRA adapter. Weights must be `.safetensors` (see below for converting). Mamba and other state-space models are not supported.
+- **Hardware:** the model must fit at full precision on one device: one GPU, Apple Silicon, or CPU memory. The tool checks this from the weight files before loading anything, and refuses with a clear message if it would not fit.
+- **For comparisons:** the model you want to compare against. For "did my fine-tune change this?", the base model you fine-tuned from. For backdoor detection, a clean model of the same family.
+- **For a training timeline:** your checkpoints, as Hugging Face revisions, local folders, or adapters. Today the timeline measures harm recognition across pretraining checkpoints.
+- **Custom architectures:** if the engine cannot tell what a part of your model is, it asks you (in chat) and records your answer.
+- **For the web chat only:** an Anthropic API key in `.env`. Claude Code and other MCP clients do not need it.
+
+### Converting `.bin` or `.pt` weights to safetensors
+
+The tool refuses pickle-based weight files because loading them can run arbitrary code. If you trust the weights, convert them once, in a separate environment:
+
+```python
+from transformers import AutoModelForCausalLM, AutoTokenizer
+
+model = AutoModelForCausalLM.from_pretrained("path/to/your-model")  # loads the .bin files
+tokenizer = AutoTokenizer.from_pretrained("path/to/your-model")
+model.save_pretrained("path/to/your-model-safetensors", safe_serialization=True)
+tokenizer.save_pretrained("path/to/your-model-safetensors")
+```
+
+Then point the tool at the new folder.
+
+### Not yet supported
+
+Stated plainly, so you know the limits before you start:
+
+- **Models that need more than one device or quantization.** Splitting a model across several GPUs and 8-bit or 4-bit loading are planned but not implemented; the tool refuses such models instead of running them in a different way than reported.
+- **Installing as a standalone package.** Run the tool from a clone of this repository. A normal `pip install` does not yet include the datasets, prompts, or web app.
+- **Your own evaluation data.** Each check uses its fixed datasets (fetched with `python -m datasets.fetch`). Domain-specific prompt sets, such as medical pushback questions for sycophancy, are planned.
+- **Comparing post-training stages** (base, then instruction tuning, then preference tuning) across a series. Today you can compare one model against one reference.
+- **Running a check without an AI agent.** Checks are started through the web chat or an MCP client; a `tool run` command is planned.
+- **Refusal detection in languages other than English.** Behavioral refusal rates are measured with English phrases only.
+- **Sycophancy question set.** The 422 trivia questions in `syco/are_you_sure` were chosen as the ones `Qwen/Qwen2.5-1.5B-Instruct` answered correctly. Other models are still measured only on the questions they themselves answer correctly, but the pool was picked by that one model.
+- **Package versions are pinned exactly** for reproducibility, so install into a fresh environment rather than an existing one.
 
 ---
 
