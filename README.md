@@ -29,11 +29,6 @@ Each risk check reports its maturity (`established` or `experimental`) up front 
 | Jailbreaks and weakened refusals | `refusal` | Built end to end | Established | Per-layer refusal direction projection and cosine similarity across stages, held-out behavioral refusal rates, look-alike controls (Arditi et al. 2024) | No |
 | Backdoors (detection) | `backdoor` | Built end to end | Established on known test models (removal is an open problem) | Generic intent contrast probes across candidate triggers compared against a clean reference model (Hubinger et al. 2024; MacDiarmid et al. 2024) | No |
 | Pretraining harm-recognition timeline | `timeline` (`E6`) | Built end to end | Established | Repeating per-layer linear probes across ordered pretraining checkpoints (for example `EleutherAI/pythia-70m` `step*` revisions) one checkpoint at a time | No |
-| Behavior drift between versions | `drift` | Documented interface | Established | Activation and safety-direction comparisons across checkpoints or post-training stages; model-diff amplification (Aranguri & McGrath 2025) | No |
-| Hidden bias | `hidden_bias` | Documented interface | Established on known test models | Linear probes for unstated user attributes paired with steering/ablation causal checks (Cywinski et al. 2025) | No |
-| Data poisoning | `data_poisoning` | Documented interface | Experimental (partly established: checkpoint timeline is established; influence-function attribution is unreliable at scale) | Checkpoint timeline + training-document attribution leads | Yes |
-| Evaluation awareness | `eval_awareness` | Documented interface | Experimental | Linear probes separating evaluation-framed from deployment-framed prompts (Nguyen et al. 2025) | No |
-| Alignment faking | `alignment_faking` | Documented interface | Experimental | Comparing compliance and internal representations across monitored vs unmonitored framings (Greenblatt et al. 2024) | No |
 
 ---
 
