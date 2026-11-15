@@ -31,6 +31,36 @@ _DEMO_MODELS: tuple[str, ...] = (
 )
 
 
+_REPO_ROOT = Path(engine.__file__).resolve().parent.parent
+_WEB_DIST = _REPO_ROOT / "web" / "dist"
+
+
+def _load_dotenv(path: Path) -> list[str]:
+    """Read simple `NAME=value` lines from a `.env` file into the environment.
+
+    Variables already set in the environment win. Values are never printed.
+    Returns the names that were set from the file.
+    """
+    import os
+
+    if not path.is_file():
+        return []
+    loaded: list[str] = []
+    for raw_line in path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        if line.startswith("export "):
+            line = line[len("export ") :]
+        name, _, value = line.partition("=")
+        name = name.strip()
+        value = value.strip().strip('"').strip("'")
+        if name and value and name not in os.environ:
+            os.environ[name] = value
+            loaded.append(name)
+    return loaded
+
+
 def _check_hf_cache_present(repo_id: str) -> bool:
     """Check offline whether a Hugging Face model folder exists in the local hub cache."""
     cache_root = Path.home() / ".cache" / "huggingface" / "hub"
@@ -207,19 +237,56 @@ def serve_cmd(
         "--require-token",
         help="Generate and require a local session bearer token for HTTP/MCP/WebSocket calls.",
     ),
+    no_web: bool = typer.Option(
+        False,
+        "--no-web",
+        help="Do not serve the web app (engine and MCP only).",
+    ),
+    open_browser: bool = typer.Option(
+        False,
+        "--open",
+        help="Open the web app in the default browser after starting.",
+    ),
 ) -> None:
-    """Start the local FastAPI + MCP engine server."""
+    """Start the tool: the engine, its MCP endpoint and the web app, in one process."""
+    import os
+
+    # A `.env` in the current folder or the repository root can hold ANTHROPIC_API_KEY.
+    for env_path in (Path.cwd() / ".env", _REPO_ROOT / ".env"):
+        _load_dotenv(env_path)
+
     session_token = secrets.token_urlsafe(24) if require_token else None
+    web_dist = None if no_web else _WEB_DIST
     asgi_app = create_app(
         workspace,
         host=host,
         port=port,
         stub_mode=stub,
         auth_token=session_token,
+        web_dist=web_dist,
     )
-    typer.echo(f"Starting engine server at http://{host}:{port}")
-    typer.echo(f"MCP endpoint: http://{host}:{port}/mcp")
+    url = f"http://{host}:{port}"
+    if web_dist is not None and (web_dist / "index.html").is_file():
+        typer.echo(f"Web app: {url}")
+    elif not no_web:
+        typer.echo(
+            "Web app not built yet. Run `pnpm --dir web install` and `pnpm --dir web build`, "
+            "then start the tool again."
+        )
+    typer.echo(f"MCP endpoint: {url}/mcp")
     typer.echo(f"Workspace: {Path(workspace).resolve()}")
+    if os.environ.get("ANTHROPIC_API_KEY"):
+        typer.echo("ANTHROPIC_API_KEY: set (built-in chat agent enabled)")
+    else:
+        typer.echo(
+            "ANTHROPIC_API_KEY: not set. The web chat needs it; put it in a .env file "
+            "in the project folder. Claude Code can still use the engine."
+        )
+    if open_browser and web_dist is not None:
+        import threading
+
+        # Give the server a moment to start listening before the browser asks for the page.
+        threading.Timer(2.0, webbrowser.open, args=(url,)).start()
     if session_token:
         typer.echo(f"Local session token: {session_token}")
     uvicorn.run(asgi_app, host=host, port=port)

@@ -10,7 +10,7 @@ from claude_agent_sdk import AgentDefinition, ClaudeAgentOptions, HookMatcher
 
 import engine  # noqa: F401  # Enforces Windows mcp-before-nnsight import order
 
-DEFAULT_AGENT_MODEL = "claude-opus-5-5"
+DEFAULT_AGENT_MODEL = "claude-sonnet-5-5"
 
 BUILT_IN_DISALLOWED_TOOLS: list[str] = [
     "Bash",

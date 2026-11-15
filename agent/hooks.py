@@ -164,7 +164,31 @@ def build_pre_tool_use_hooks(
     max_estimate_seconds: float = DEFAULT_MAX_ESTIMATE_SECONDS,
 ) -> list[HookMatcher]:
     """Return `HookMatcher` list enforcing `run_plan` approval and logging every tool call."""
+    async def only_reviewer_subagent(
+        input_data: dict[str, Any],
+        tool_use_id: str | None,
+        context: Any,
+    ) -> dict[str, Any]:
+        # The `Agent` tool exists so the reviewer can run. Any other subagent would give the
+        # built-in agent general tools (reading files and so on) and slow every answer down.
+        tool_input = dict(input_data.get("tool_input") or {})
+        if str(tool_input.get("subagent_type") or "") == "reviewer":
+            return {}
+        return {
+            "hookSpecificOutput": {
+                "hookEventName": "PreToolUse",
+                "permissionDecision": "deny",
+                "permissionDecisionReason": (
+                    "Only the reviewer subagent may be started. Use the engine tools directly."
+                ),
+            }
+        }
+
     return [
+        HookMatcher(
+            matcher="Agent",
+            hooks=[only_reviewer_subagent],
+        ),
         HookMatcher(
             matcher=RUN_PLAN_TOOL_NAME,
             hooks=[

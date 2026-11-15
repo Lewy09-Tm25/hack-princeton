@@ -27,15 +27,34 @@ def create_http_router(service: EngineService) -> APIRouter:
     async def list_models() -> list[dict[str, Any]]:
         return [m.model_dump() for m in service.record.list_model_maps()]
 
+    @router.get("/models/active")
+    async def active_model() -> dict[str, Any]:
+        """The model loaded in this server session, or none. The web app polls this."""
+        model_id = service.active_model_id
+        return {"model_id": model_id}
+
     @router.post("/models/load")
     async def load_model_endpoint(body: LoadModelBody) -> dict[str, Any]:
+        import asyncio
+        import functools
+
+        from fastapi.concurrency import run_in_threadpool
+
+        call = functools.partial(
+            service.load_model,
+            source=body.source,
+            revision=body.revision,
+            adapter=body.adapter,
+            allow_remote_code=body.allow_remote_code,
+        )
         try:
-            return service.load_model(
-                source=body.source,
-                revision=body.revision,
-                adapter=body.adapter,
-                allow_remote_code=body.allow_remote_code,
-            )
+            try:
+                asyncio.get_running_loop()
+            except RuntimeError:
+                # No event loop (some tests drive the app by hand): call directly.
+                return call()
+            # Off the event loop, so loading a model does not freeze the rest of the server.
+            return await run_in_threadpool(call)
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 

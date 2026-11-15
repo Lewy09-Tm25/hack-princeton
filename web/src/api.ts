@@ -167,6 +167,12 @@ export async function fetchModels(): Promise<ModelSummary[]> {
   return unwrapList<ModelSummary>(raw, 'models')
 }
 
+/** The model loaded in the engine's current session, or null when none is loaded yet. */
+export async function fetchActiveModelId(): Promise<string | null> {
+  const raw = await requestJson<{ model_id?: string | null }>('/api/models/active')
+  return raw && typeof raw.model_id === 'string' && raw.model_id ? raw.model_id : null
+}
+
 export async function fetchModelMap(modelId: string): Promise<ModelMap> {
   return requestJson<ModelMap>(`/api/models/${encodeURIComponent(modelId)}/map`)
 }

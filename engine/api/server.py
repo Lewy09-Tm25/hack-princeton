@@ -95,6 +95,7 @@ def create_app(
     stub_mode: bool = False,
     auth_token: str | None = None,
     chat_session_factory: Callable[..., Any] | None = None,
+    web_dist: Path | str | None = None,
 ) -> FastAPI:
     """Create the FastAPI application with `/mcp`, `/api/*`, `/ws/events`, and `/ws/chat`."""
     record = Record(workspace)
@@ -139,6 +140,14 @@ def create_app(
         )
     )
     app.mount("/mcp", mcp_app)
+
+    # Serve the built web app from the same process, so one command starts everything.
+    # Mounted last so `/api`, `/ws` and `/mcp` keep priority.
+    if web_dist is not None and (Path(web_dist) / "index.html").is_file():
+        from fastapi.staticfiles import StaticFiles
+
+        app.mount("/", StaticFiles(directory=str(web_dist), html=True), name="web")
+
     app.add_middleware(_NormalizeMcpSlashMiddleware)
 
     return app

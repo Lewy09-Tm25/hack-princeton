@@ -1,11 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import {
-  fetchExamples,
-  fetchFindings,
-  fetchModelMap,
-  fetchModels,
-  fetchResults,
-} from './api'
+import { fetchActiveModelId, fetchExamples, fetchModelMap, fetchResults } from './api'
 import { CompareModels } from './charts/CompareModels'
 import { ExamplesList } from './charts/ExamplesList'
 import { LayerCurve } from './charts/LayerCurve'
@@ -22,6 +16,7 @@ import {
   type FakeFixturePreset,
 } from './dev/fakeEvents'
 import { EventsClient } from './events'
+import { CloseIcon } from './icons'
 import { ReportView } from './reports/ReportView'
 import { ClaudeCodePanel } from './setup/ClaudeCodePanel'
 import {
@@ -35,6 +30,17 @@ import { ModelScene } from './view/ModelScene'
 import { Timeline } from './view/Timeline'
 
 export { HONESTY_BANNER_TEXT }
+
+const CHAT_WIDTH_KEY = 'chatPanelWidth'
+const DEFAULT_CHAT_WIDTH = 420
+const MIN_CHAT_WIDTH = 280
+const MIN_VIEW_WIDTH = 320
+
+function clampChatWidth(width: number): number {
+  const viewport = typeof window !== 'undefined' ? window.innerWidth : 1440
+  const max = Math.max(MIN_CHAT_WIDTH, viewport - MIN_VIEW_WIDTH)
+  return Math.round(Math.min(max, Math.max(MIN_CHAT_WIDTH, width)))
+}
 
 export function App() {
   const modelMap = useAppStore((s) => s.modelMap)
@@ -60,11 +66,57 @@ export function App() {
   const openEvidenceForFinding = useAppStore((s) => s.openEvidenceForFinding)
   const setResultsForRun = useAppStore((s) => s.setResultsForRun)
   const setExamplesForRun = useAppStore((s) => s.setExamplesForRun)
-  const upsertFinding = useAppStore((s) => s.upsertFinding)
 
   const [replaySpeed, setReplaySpeed] = useState<number>(1)
   const [preset, setPreset] = useState<FakeFixturePreset>('qwen25_sycophancy')
   const [failedEvidenceRuns, setFailedEvidenceRuns] = useState<Record<string, boolean>>({})
+  // Chat panel width in pixels. The user drags the divider to change it; the choice is
+  // remembered in this browser only.
+  const [chatWidth, setChatWidth] = useState<number>(() => {
+    try {
+      const saved = Number(window.localStorage.getItem(CHAT_WIDTH_KEY))
+      return Number.isFinite(saved) && saved > 0 ? clampChatWidth(saved) : DEFAULT_CHAT_WIDTH
+    } catch {
+      return DEFAULT_CHAT_WIDTH
+    }
+  })
+  const updateChatWidth = (next: number) => {
+    const clamped = clampChatWidth(next)
+    setChatWidth(clamped)
+    try {
+      window.localStorage.setItem(CHAT_WIDTH_KEY, String(clamped))
+    } catch {
+      // Storage unavailable (private window); the width just is not remembered.
+    }
+  }
+  const handleResizeStart = (e: React.PointerEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    const startX = e.clientX
+    const startWidth = chatWidth
+    document.body.classList.add('is-resizing')
+    const onMove = (ev: PointerEvent) => updateChatWidth(startWidth + ev.clientX - startX)
+    const onUp = () => {
+      document.body.classList.remove('is-resizing')
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+    }
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp)
+  }
+  const handleResizeKey = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'ArrowLeft') updateChatWidth(chatWidth - 32)
+    if (e.key === 'ArrowRight') updateChatWidth(chatWidth + 32)
+  }
+
+  // Placeholder replay controls are for development only. Open the app with `?fixtures=1`
+  // to show them; users never see them otherwise.
+  const showFixtureControls = useMemo(() => {
+    try {
+      return new URLSearchParams(window.location.search).get('fixtures') === '1'
+    } catch {
+      return false
+    }
+  }, [])
 
   const showHonestyBanner = hasPlaceholderOrUnverifiedData({
     isFakeMode,
@@ -92,28 +144,38 @@ export function App() {
     const client = new EventsClient()
     client.start()
 
-    void (async () => {
+    // Show only the model loaded in this engine session. A fresh start has no model:
+    // the user tells the agent (here or in Claude Code) which model to check, and the
+    // view follows as soon as the engine loads it.
+    let stopped = false
+    let shownModelId: string | null = null
+    let inFlight = false
+    const syncActiveModel = async () => {
+      // Never stack requests: if the engine is busy, wait for the previous check to return.
+      if (inFlight) return
+      inFlight = true
       try {
-        const [models, existingFindings] = await Promise.all([
-          fetchModels(),
-          fetchFindings().catch(() => []),
-        ])
-        if (models.length > 0 && !useAppStore.getState().modelMap) {
-          const map = await fetchModelMap(models[0].model_id)
-          setModelMap(map)
-        }
-        for (const f of existingFindings) {
-          upsertFinding(f)
-        }
+        const activeId = await fetchActiveModelId()
+        if (stopped || !activeId || activeId === shownModelId) return
+        const map = await fetchModelMap(activeId)
+        if (stopped) return
+        shownModelId = activeId
+        setModelMap(map)
       } catch {
-        // Engine server may not have a loaded model yet
+        // Engine not reachable yet; the connection status already says so.
+      } finally {
+        inFlight = false
       }
-    })()
+    }
+    void syncActiveModel()
+    const pollTimer = setInterval(() => void syncActiveModel(), 2000)
 
     return () => {
+      stopped = true
+      clearInterval(pollTimer)
       client.stop()
     }
-  }, [isFakeMode, preset, replaySpeed, setModelMap, upsertFinding])
+  }, [isFakeMode, preset, replaySpeed, setModelMap])
 
   useEffect(() => {
     sharedFakePlayer.setSpeed(replaySpeed)
@@ -269,26 +331,45 @@ export function App() {
         </div>
       )}
 
-      <header className="app-header">
-        <div className="app-header-left">
-          <h1 className="app-title">Model safety investigation tool</h1>
-          <span className="status-pill">
-            <span
-              className={`status-dot ${
-                connectionStatus === 'connected'
-                  ? 'connected'
-                  : connectionStatus === 'fake'
-                    ? 'fake'
-                    : ''
-              }`}
-            />
-            {connectionStatus === 'connected' && 'Engine connected'}
-            {connectionStatus === 'connecting' && 'Connecting to engine'}
-            {connectionStatus === 'disconnected' && 'Engine disconnected'}
-            {connectionStatus === 'fake' && 'Fixture replay mode (placeholder)'}
-          </span>
+      <div className="workspace-split">
+        <section className="pane-chat" aria-label="Conversation" style={{ width: chatWidth }}>
+          <ChatPanel />
+        </section>
+
+        <div
+          className="pane-resizer"
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Resize the chat panel"
+          aria-valuenow={chatWidth}
+          tabIndex={0}
+          onPointerDown={handleResizeStart}
+          onKeyDown={handleResizeKey}
+          onDoubleClick={() => updateChatWidth(DEFAULT_CHAT_WIDTH)}
+        />
+
+        <section className="pane-view" aria-label="Model structure view">
+          {/* Floating controls over the model view (no top bar). */}
+          <div className="floating-bar floating-top-left">
+            {modelMap && (
+              <span className="floating-chip model-name-chip">
+                <strong>{modelMap.model_id}</strong> ({modelMap.n_layers} layers
+                {modelMap.arch_family ? `, ${modelMap.arch_family}` : ''})
+              </span>
+            )}
+          </div>
+
+          <div className="floating-bar floating-top-right">
+            {connectionStatus === 'disconnected' && !isFakeMode && (
+              <span className="floating-chip floating-warning" role="status">
+                Engine not connected
+              </span>
+            )}
+            {isFakeMode && (
+              <span className="floating-chip">Fixture replay mode (placeholder)</span>
+            )}
           {activeJobEntries.length > 0 && (
-            <span className="status-pill">
+            <span className="floating-chip">
               Job: {activeJobEntries[activeJobEntries.length - 1][1].status}
               {activeJobEntries[activeJobEntries.length - 1][1].step !== undefined &&
               activeJobEntries[activeJobEntries.length - 1][1].total !== undefined
@@ -296,10 +377,7 @@ export function App() {
                 : ''}
             </span>
           )}
-        </div>
-
-        <div className="app-header-right">
-          {(connectionStatus === 'disconnected' || isFakeMode) && (
+          {(showFixtureControls || isFakeMode) && (
             <>
               <select
                 aria-label="Fixture preset"
@@ -352,51 +430,35 @@ export function App() {
           >
             Claude Code setup
           </button>
-        </div>
-      </header>
+          </div>
 
-      <div className="workspace-split">
-        <section className="pane-chat" aria-label="Conversation">
-          <ChatPanel />
-        </section>
-
-        <section className="pane-view" aria-label="Model structure view">
-          <div className="view-toolbar">
-            <div>
-              {modelMap ? (
-                <span>
-                  <strong>{modelMap.model_id}</strong> ({modelMap.n_layers} layers
-                  {modelMap.arch_family ? `, ${modelMap.arch_family}` : ''})
-                </span>
-              ) : (
-                <span style={{ color: 'var(--text-muted)' }}>No model loaded yet</span>
-              )}
-            </div>
-            <div style={{ display: 'flex', gap: '0.35rem' }}>
+          <div className="view-stage">
+            <div className="floating-bar floating-bottom-right">
               <button
                 type="button"
                 className={`btn ${viewMode === '3d' ? 'btn-active' : ''}`}
                 onClick={() => setViewMode('3d')}
               >
-                3D view
+                3D
               </button>
               <button
                 type="button"
                 className={`btn ${viewMode === '2d' ? 'btn-active' : ''}`}
                 onClick={() => setViewMode('2d')}
               >
-                2D grid
+                2D
               </button>
             </div>
-          </div>
-
-          <div className="view-stage">
             {!modelMap ? (
               <div className="view-empty-overlay">
-                <p style={{ margin: 0 }}>
-                  Connect the engine server and load a model, or start the placeholder fixture
-                  replay above to inspect a sample architecture map.
-                </p>
+                {connectionStatus === 'disconnected' ? (
+                  <p style={{ margin: 0 }}>
+                    The engine is not running. Start the tool with <code>tool serve</code>, then
+                    reload this page.
+                  </p>
+                ) : (
+                  <p style={{ margin: 0 }}>No model loaded.</p>
+                )}
               </div>
             ) : (
               <ModelScene modelMap={modelMap} />
@@ -416,7 +478,7 @@ export function App() {
                 className={`btn ${drawerTab === 'charts' ? 'btn-active' : ''}`}
                 onClick={() => setDrawerTab('charts')}
               >
-                Charts and evidence
+                Charts
               </button>
               <button
                 type="button"
@@ -433,8 +495,14 @@ export function App() {
                 Claude Code setup
               </button>
             </div>
-            <button type="button" className="btn" onClick={() => setDrawerTab('closed')}>
-              Close
+            <button
+              type="button"
+              className="icon-btn"
+              aria-label="Close panel"
+              title="Close"
+              onClick={() => setDrawerTab('closed')}
+            >
+              <CloseIcon />
             </button>
           </div>
 
@@ -499,11 +567,7 @@ export function App() {
                     />
                   </div>
                 ) : (
-                  <p style={{ color: 'var(--text-muted)', margin: 0 }}>
-                    Run an approved check or select &ldquo;Show evidence&rdquo; on a finding to
-                    inspect per-layer curves, reference comparisons, shift-test outcomes, and
-                    spot-check examples.
-                  </p>
+                  <p className="drawer-empty">No charts yet.</p>
                 )}
               </div>
             )}

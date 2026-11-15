@@ -153,10 +153,8 @@ export function ClaudeCodePanel({
     <div className="claude-setup-panel" role="region" aria-label="Claude Code setup">
       <div className="claude-setup-intro">
         <p style={{ margin: 0 }}>
-          Claude Code and this web application connect to the same local engine, workspace
-          {resolved.workspace ? ` (${resolved.workspace})` : ''}, and SQLite / Parquet experiment
-          record on your own hardware. Drafted plans, live 3D layer focus and paint events,
-          findings, reviewer checks, and standalone HTML reports stay in sync between terminal and
+          Claude Code and this web application connect to the same local engine, workspace, and
+          SQLite / Parquet experiment record on your own hardware, in sync between terminal and
           browser.
         </p>
         {isFakeMode && (

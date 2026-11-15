@@ -72,9 +72,9 @@ def _seed_run(record: Record, check: str = "backdoor") -> str:
 
 
 def test_reviewer_tool_lockdown_and_model_selection(tmp_path: Path) -> None:
-    """Verify reviewer uses claude-opus-5-5 and locks tools strictly to evidence & review."""
+    """Verify reviewer uses claude-sonnet-5-5 and locks tools strictly to evidence & review."""
     defn = build_reviewer_definition()
-    assert defn.model == DEFAULT_AGENT_MODEL == "claude-opus-5-5"
+    assert defn.model == DEFAULT_AGENT_MODEL == "claude-sonnet-5-5"
     assert defn.prompt == load_reviewer_prompt()
     assert defn.tools == [
         "mcp__engine__get_evidence",
@@ -92,7 +92,7 @@ def test_reviewer_tool_lockdown_and_model_selection(tmp_path: Path) -> None:
         auth_token="local_test_token",
     )
     opts = build_standalone_reviewer_options(settings)
-    assert opts.model == "claude-opus-5-5"
+    assert opts.model == "claude-sonnet-5-5"
     assert opts.thinking == {"type": "adaptive"}
     assert opts.system_prompt == load_reviewer_prompt()
     assert opts.tools == []
@@ -528,7 +528,7 @@ def test_well_scoped_honest_suggestive_finding_is_approved_unchanged(
     reason="Waiting for real-model/API testing",
 )
 def test_live_claude_opus_reviewer_catches_overclaim(tmp_path: Path) -> None:
-    """Real claude-opus-5-5 SDK review test when ANTHROPIC_API_KEY and local MCP run."""
+    """Real claude-sonnet-5-5 SDK review test when ANTHROPIC_API_KEY and local MCP run."""
     ws = tmp_path / "workspace"
     rec = Record(ws)
     try:

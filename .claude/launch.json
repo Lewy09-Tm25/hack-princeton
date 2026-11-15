@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "app",
+      "runtimeExecutable": "uv",
+      "runtimeArgs": ["run", "--locked", "--all-extras", "tool", "serve", "--workspace", "./workspace", "--port", "8000"],
+      "port": 8000
+    },
+    {
+      "name": "web-dev",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--dir", "web", "dev"],
+      "port": 5173
+    }
+  ]
+}

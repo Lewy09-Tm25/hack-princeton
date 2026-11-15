@@ -335,6 +335,9 @@ class EngineService:
         self.stub_mode = stub_mode
         self.event_bus = event_bus or LocalEventBus()
         self._loaded_models: dict[str, Any] = {}
+        # The model most recently loaded in this server session. The web app shows this
+        # model, not whatever happens to be stored in the record from earlier sessions.
+        self.active_model_id: str | None = None
         self._job_states: dict[str, dict[str, Any]] = {}
         self._real_job_manager: Any | None = None
         if not stub_mode:
@@ -453,6 +456,7 @@ class EngineService:
                 mmap = build_model_map(loaded)
                 self.record.save_model_map(mmap)
                 self._loaded_models[mmap.model_id] = loaded
+                self.active_model_id = mmap.model_id
                 out = {
                     "model_id": mmap.model_id,
                     "source": source,
@@ -474,6 +478,7 @@ class EngineService:
         if adapter:
             mmap = mmap.model_copy(update={"model_id": f"{mmap.model_id}+adapter:{adapter}"})
         self.record.save_model_map(mmap)
+        self.active_model_id = mmap.model_id
         out = {
             "model_id": mmap.model_id,
             "source": source,
@@ -1562,18 +1567,27 @@ def register_mcp_tools(mcp: FastMCP, service: EngineService) -> None:
         return service.get_compute()
 
     @mcp.tool()
-    def load_model(
+    async def load_model(
         source: str,
         revision: str | None = None,
         adapter: str | None = None,
         allow_remote_code: bool = False,
     ) -> dict[str, Any]:
         """Load a model safely (safetensors only by default) and build its structural map."""
-        return service.load_model(
-            source=source,
-            revision=revision,
-            adapter=adapter,
-            allow_remote_code=allow_remote_code,
+        import functools
+
+        import anyio
+
+        # Loading takes seconds to minutes on CPU. Run it in a worker thread so the server
+        # (web app, chat, other tool calls) keeps responding meanwhile.
+        return await anyio.to_thread.run_sync(
+            functools.partial(
+                service.load_model,
+                source=source,
+                revision=revision,
+                adapter=adapter,
+                allow_remote_code=allow_remote_code,
+            )
         )
 
     @mcp.tool()
@@ -1587,18 +1601,25 @@ def register_mcp_tools(mcp: FastMCP, service: EngineService) -> None:
         return service.confirm_components(model_id=model_id, mapping=mapping)
 
     @mcp.tool()
-    def register_series(
+    async def register_series(
         kind: SeriesKind,
         items: list[dict[str, Any]],
         model_family: str = "unknown",
         series_id: str | None = None,
     ) -> dict[str, Any]:
         """Register an ordered series of pretraining checkpoints or post-training stages."""
-        return service.register_series(
-            kind=kind,
-            items=items,
-            model_family=model_family,
-            series_id=series_id,
+        import functools
+
+        import anyio
+
+        return await anyio.to_thread.run_sync(
+            functools.partial(
+                service.register_series,
+                kind=kind,
+                items=items,
+                model_family=model_family,
+                series_id=series_id,
+            )
         )
 
     @mcp.tool()

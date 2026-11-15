@@ -289,7 +289,7 @@ Main points:
 
 | ID | Component | What it does | Libraries |
 |---|---|---|---|
-| A1 | Built-in agent | Holds the conversation in the web app. Drafts plans from the risk checks and adapts them to the user's model and domain. Asks questions and explains results | Claude Agent SDK (Python), connected to the engine's MCP server. Model `claude-opus-5-5` with adaptive thinking. Server-side refusal fallbacks turned on |
+| A1 | Built-in agent | Holds the conversation in the web app. Drafts plans from the risk checks and adapts them to the user's model and domain. Asks questions and explains results | Claude Agent SDK (Python), connected to the engine's MCP server. Model `claude-sonnet-5-5` with adaptive thinking. Server-side refusal fallbacks turned on |
 | A2 | Reviewer agent | Reads only the evidence the engine assembled, and returns a verdict for each claim | A subagent with its own instructions. Same model by default, configurable, since Goodfire recommends a different model for independence |
 | A3 | Approval and logging | Blocks experiment runs until the user approves the plan, logs every tool call, and enforces compute limits | Agent SDK hooks |
 | A4 | Claude Code plugin | Packages the engine for Claude Code | `.claude-plugin/plugin.json`, `.mcp.json` pointing at the engine, skills describing how to use each check, and the reviewer as a plugin subagent |

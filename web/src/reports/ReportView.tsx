@@ -250,11 +250,22 @@ export function ReportView({
   const targetBuildRunId = derivedActiveRunId ?? buildableRunIds[0] ?? null
   const activeReportUrl = activeReport ? getReportUrl(activeReport.report_id) : null
 
+  // Nothing to show and nothing to build: say so, and nothing more.
+  if (reports.length === 0 && !targetBuildRunId && !statusMessage) {
+    return (
+      <div className="report-view" role="region" aria-label="Report viewer">
+        <p className="drawer-empty">
+          {loadFailed ? 'Could not load reports.' : 'No reports yet.'}
+        </p>
+      </div>
+    )
+  }
+
   return (
     <div className="report-view" role="region" aria-label="Report viewer">
       <div className="report-sidebar">
         <div className="report-sidebar-header">
-          <strong>Saved HTML reports</strong>
+          <strong>Reports</strong>
           <button
             type="button"
             className="btn"
@@ -291,9 +302,7 @@ export function ReportView({
 
         {reports.length === 0 ? (
           <p className="chart-empty-note">
-            {loadFailed
-              ? 'Could not reach /api/reports on the local engine.'
-              : 'No saved HTML reports in this workspace yet. Run an approved check or click Build report for a completed run.'}
+            {loadFailed ? 'Could not load reports.' : 'No reports yet.'}
           </p>
         ) : (
           <ul className="report-list" aria-label="Past reports">
@@ -350,8 +359,7 @@ export function ReportView({
         ) : (
           <div className="report-frame-empty">
             <p style={{ margin: 0 }}>
-              Select a saved report on the left, or generate one from a completed run with{' '}
-              <code>tool report &lt;run_id&gt;</code> / <strong>Build report</strong>.
+              {reports.length > 0 ? 'Select a report.' : 'No report selected.'}
             </p>
           </div>
         )}

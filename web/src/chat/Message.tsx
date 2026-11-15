@@ -118,22 +118,21 @@ export function Message({
     )
   }
 
-  const roleLabel =
-    message.role === 'user'
-      ? 'You'
-      : message.role === 'system'
-        ? 'Note'
-        : 'Assistant'
+  // No "You" / "Assistant" labels: the bubble's side and colour show who is speaking.
+  // A small line remains only when there is something extra to say.
+  const metaParts: string[] = []
+  if (message.contextComponentId) {
+    metaParts.push(
+      `context: ${formatComponentLabel(message.contextComponentId)} (${message.contextComponentId})`,
+    )
+  }
+  if (message.streaming) {
+    metaParts.push('streaming…')
+  }
 
   return (
     <div className={`msg-row ${message.role}`}>
-      <div className="msg-meta">
-        {roleLabel}
-        {message.contextComponentId
-          ? ` · context: ${formatComponentLabel(message.contextComponentId)} (${message.contextComponentId})`
-          : ''}
-        {message.streaming ? ' · streaming…' : ''}
-      </div>
+      {metaParts.length > 0 && <div className="msg-meta">{metaParts.join(' · ')}</div>}
       <div className="msg-bubble">{renderSafeMarkdown(message.text)}</div>
     </div>
   )

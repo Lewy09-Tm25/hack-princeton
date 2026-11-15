@@ -238,14 +238,39 @@ select {
 }
 
 .pane-chat {
-  width: 35%;
-  min-width: 320px;
-  max-width: 560px;
+  /* Width is set inline from the draggable divider. */
+  flex-shrink: 0;
+  min-width: 280px;
   display: flex;
   flex-direction: column;
-  border-right: 1px solid var(--border-subtle);
   background: var(--bg-panel);
   min-height: 0;
+}
+
+/* Draggable divider between the chat and the model view. */
+.pane-resizer {
+  flex: 0 0 6px;
+  cursor: col-resize;
+  background: var(--border-subtle);
+  transition: background 0.15s;
+  touch-action: none;
+}
+
+.pane-resizer:hover,
+.pane-resizer:focus-visible,
+body.is-resizing .pane-resizer {
+  background: var(--accent, #4f8cff);
+  outline: none;
+}
+
+/* While dragging, stop text selection and keep the resize cursor everywhere. */
+body.is-resizing {
+  cursor: col-resize;
+  user-select: none;
+}
+
+body.is-resizing canvas {
+  pointer-events: none;
 }
 
 .pane-view {
@@ -298,8 +323,13 @@ select {
     overflow-y: auto;
   }
 
+  .pane-resizer {
+    display: none;
+  }
+
   .pane-chat {
-    width: 100%;
+    /* Stacked layout on narrow screens: ignore the dragged width. */
+    width: 100% !important;
     max-width: none;
     min-width: 0;
     height: 48vh;
@@ -1311,4 +1341,115 @@ select {
   .evidence-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* Floating controls over the model view (replaces the old top bar and view toolbar). */
+.floating-bar {
+  position: absolute;
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  pointer-events: none;
+}
+
+.floating-bar > * {
+  pointer-events: auto;
+}
+
+.floating-top-left {
+  top: 0.75rem;
+  left: 0.75rem;
+  max-width: 50%;
+}
+
+.floating-top-right {
+  top: 0.75rem;
+  right: 0.75rem;
+  justify-content: flex-end;
+  max-width: 60%;
+}
+
+.floating-bottom-right {
+  right: 0.75rem;
+  bottom: 0.75rem;
+}
+
+.floating-bar .btn,
+.floating-chip {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+}
+
+.floating-bar .btn.btn-active {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.floating-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.8125rem;
+  color: var(--text-primary);
+}
+
+.floating-warning {
+  background: var(--bg-banner-warn);
+  border-color: var(--border-banner-warn);
+  color: var(--text-banner-warn);
+  font-weight: 500;
+}
+
+/* Icon-only buttons (send, close). */
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.icon-btn:hover:not(:disabled) {
+  background: var(--bg-subtle);
+  color: var(--text-primary);
+}
+
+.icon-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.send-btn {
+  color: var(--accent);
+}
+
+.send-btn:disabled {
+  color: var(--text-muted);
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* Plain "nothing here yet" line in the bottom panel. */
+.drawer-empty {
+  /* Fill the panel width in any parent (block or flex) so the text always sits centred. */
+  flex: 1 1 100%;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 1.5rem 0;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.9375rem;
 }

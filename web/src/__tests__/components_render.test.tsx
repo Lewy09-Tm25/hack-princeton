@@ -22,11 +22,28 @@ describe('SSR component rendering for W1, W2, and W3', () => {
     useAppStore.getState().resetStore({ isFakeMode: false, viewMode: '3d' })
   })
 
-  it('renders App default shell with fixture replay button and suggestion chips when disconnected', () => {
+  it('renders the first screen with no model loaded: start suggestions, no fixture controls', () => {
     const html = renderToStaticMarkup(<App />)
-    expect(html).toContain('Model safety investigation tool')
-    expect(html).toContain('Replay fixture stream (placeholder)')
-    expect(html).toContain('Did my fine-tune make the model more sycophantic?')
+    // No top bar: no title, and the engine status shows only when it is not connected.
+    expect(html).not.toContain('Model safety investigation tool')
+    expect(html).toContain('Engine not connected')
+    expect(html).toContain('Claude Code setup')
+    // Placeholder replay controls appear only with ?fixtures=1, never by default.
+    expect(html).not.toContain('Replay fixture stream (placeholder)')
+    expect(html).toContain('I want to check a model I have on this machine')
+    expect(html).toContain('Which demo models can I try?')
+    expect(html).not.toContain('Did my fine-tune make the model more sycophantic?')
+    expect(html).toContain('The engine is not running')
+  })
+
+  it('hides the suggestion chips once the conversation has started', () => {
+    // Server rendering reads the store's initial state, as the other tests here do.
+    Object.assign(useAppStore.getInitialState(), {
+      chatMessages: [{ id: 'm1', role: 'user', kind: 'text', text: 'Which demo models can I try?' }],
+    })
+    const html = renderToStaticMarkup(<App />)
+    expect(html).not.toContain('suggestion-chip')
+    expect(html).toContain('placeholder="Ask a question"')
   })
 
   it('renders App with honesty banner and 2D grid when fake mode or placeholder data is active', () => {

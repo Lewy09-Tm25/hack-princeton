@@ -7,7 +7,14 @@ import {
   approvePlanFromButton,
   submitChatTurn,
 } from './chatLogic'
+import { SendIcon } from '../icons'
 import { Message } from './Message'
+
+// Shown before any model is loaded: the first step is saying which model to check.
+const START_SUGGESTIONS: ReadonlyArray<string> = [
+  'I want to check a model I have on this machine',
+  'Which demo models can I try?',
+]
 
 const BASE_SUGGESTIONS: ReadonlyArray<string> = [
   'Did my fine-tune make the model more sycophantic?',
@@ -19,6 +26,7 @@ export function ChatPanel() {
   const chatMessages = useAppStore((s) => s.chatMessages)
   const draftInput = useAppStore((s) => s.draftInput)
   const selectedComponentId = useAppStore((s) => s.selectedComponentId)
+  const modelMap = useAppStore((s) => s.modelMap)
   const plans = useAppStore((s) => s.plans)
   const findings = useAppStore((s) => s.findings)
   const isFakeMode = useAppStore((s) => s.isFakeMode)
@@ -141,9 +149,11 @@ export function ChatPanel() {
     sharedFakePlayer.seedInitialMockConversation()
   }
 
-  const suggestionItems = selectedComponentId
-    ? [`What is measured at ${formatComponentLabel(selectedComponentId)}?`, ...BASE_SUGGESTIONS]
-    : BASE_SUGGESTIONS
+  const suggestionItems = !modelMap
+    ? START_SUGGESTIONS
+    : selectedComponentId
+      ? [`What is measured at ${formatComponentLabel(selectedComponentId)}?`, ...BASE_SUGGESTIONS]
+      : BASE_SUGGESTIONS
 
   return (
     <div className="chat-panel">
@@ -175,12 +185,13 @@ export function ChatPanel() {
       <div className="chat-messages">
         {chatMessages.length === 0 ? (
           <div className="chat-empty">
-            Describe your model or ask a safety question in plain language. Click a suggestion
-            below to fill the message box, or click any block in the model view to attach it as
-            context.
+            {modelMap
+              ? 'Ask a safety question about this model in plain language. Click a suggestion below to fill the message box, or click any block in the model view to attach it as context.'
+              : 'Start by telling the assistant which model you want to check: one of your own, or one of the demo models. Then ask your safety question in plain language.'}
             {!isFakeMode && !chatWsConnected && (
               <div style={{ marginTop: '0.45rem', fontSize: '0.78rem' }}>
-                Waiting for <code>/ws/chat</code> connection on the local engine server.
+                Not connected to the engine. Start the tool with <code>tool serve</code>, then
+                reload this page.
               </div>
             )}
           </div>
@@ -205,18 +216,21 @@ export function ChatPanel() {
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="chat-suggestions" aria-label="Prompt suggestions">
-        {suggestionItems.map((suggestion) => (
-          <button
-            key={suggestion}
-            type="button"
-            className="suggestion-chip"
-            onClick={() => setDraftInput(suggestion)}
-          >
-            {suggestion}
-          </button>
-        ))}
-      </div>
+      {/* Suggestions help with the first message only; after that the conversation leads. */}
+      {chatMessages.length === 0 && (
+        <div className="chat-suggestions" aria-label="Prompt suggestions">
+          {suggestionItems.map((suggestion) => (
+            <button
+              key={suggestion}
+              type="button"
+              className="suggestion-chip"
+              onClick={() => setDraftInput(suggestion)}
+            >
+              {suggestion}
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="chat-composer">
         {selectedComponentId && (
@@ -241,7 +255,7 @@ export function ChatPanel() {
             aria-label="Chat message input"
             className="composer-textarea"
             rows={2}
-            placeholder="Ask a question in plain language, or reply 'yes, go ahead' to approve a plan…"
+            placeholder="Ask a question"
             value={draftInput}
             onChange={(e) => setDraftInput(e.target.value)}
             onKeyDown={(e) => {
@@ -253,11 +267,13 @@ export function ChatPanel() {
           />
           <button
             type="button"
-            className="btn btn-primary"
+            className="icon-btn send-btn"
+            aria-label="Send message"
+            title="Send"
             disabled={draftInput.trim().length === 0}
             onClick={handleSend}
           >
-            Send
+            <SendIcon />
           </button>
         </div>
       </div>

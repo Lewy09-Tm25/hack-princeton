@@ -50,7 +50,7 @@ def test_claude_agent_options_construction(tmp_path: Path) -> None:
         )
         opts = build_agent_options(settings, pre_tool_hooks=hooks)
 
-        assert opts.model == DEFAULT_AGENT_MODEL == "claude-opus-5-5"
+        assert opts.model == DEFAULT_AGENT_MODEL == "claude-sonnet-5-5"
         assert opts.thinking == {"type": "adaptive"}
         assert opts.tools == ["Agent"]
         assert opts.disallowed_tools == BUILT_IN_DISALLOWED_TOOLS
@@ -66,7 +66,7 @@ def test_claude_agent_options_construction(tmp_path: Path) -> None:
 
         assert opts.agents is not None
         reviewer = opts.agents["reviewer"]
-        assert reviewer.model == "claude-opus-5-5"
+        assert reviewer.model == "claude-sonnet-5-5"
         assert reviewer.tools == [
             "mcp__engine__get_evidence",
             "mcp__engine__submit_review",

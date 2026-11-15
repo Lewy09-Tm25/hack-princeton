@@ -75,7 +75,7 @@ describe('W6 ReportView & report API helpers', () => {
     const firstHtml = renderToStaticMarkup(
       <ReportView isFakeMode={false} initialReports={fetched} selectedReportId="rep_syco_001" />,
     )
-    expect(firstHtml).toContain('Saved HTML reports')
+    expect(firstHtml).toContain('>Reports<')
     expect(firstHtml).toContain('rep_syco_001')
     expect(firstHtml).toContain('rep_refusal_002')
     expect(firstHtml).toContain('2026-11-14 11:00:00 UTC')
@@ -225,7 +225,10 @@ describe('W7 ClaudeCodePanel & App drawer integration', () => {
     expect(html).toContain('Claude Code plugin')
     expect(html).toContain(resolved.httpCommand.replace(/"/g, '&quot;'))
     expect(html).toContain(DEFAULT_PLUGIN_COMMAND)
-    expect(html).toContain('same local engine, workspace (C:/workspace), and SQLite / Parquet')
+    expect(html).toContain('same local engine, workspace, and')
+    expect(html).toContain('in sync between terminal and')
+    // The workspace path is no longer shown in the intro sentence.
+    expect(html).not.toContain('workspace (C:/workspace)')
 
     // Copy to navigator.clipboard and check Copied state
     const writeTextMock = vi.fn(async () => undefined)

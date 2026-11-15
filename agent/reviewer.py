@@ -38,7 +38,7 @@ except (ImportError, AttributeError):
     from engine.api.approval import validate_strength_transition
 
 OFFLINE_AUDIT_PREFIX = (
-    "[offline rule audit; live claude-opus-5-5 review requires ANTHROPIC_API_KEY] "
+    "[offline rule audit; live claude-sonnet-5-5 review requires ANTHROPIC_API_KEY] "
 )
 
 _STRENGTH_RANK: dict[str, int] = {
@@ -129,7 +129,7 @@ def build_standalone_reviewer_options(
     """Build `ClaudeAgentOptions` for running the reviewer as an isolated session.
 
     Locks tools strictly to `mcp__engine__get_evidence` and `mcp__engine__submit_review`
-    on `claude-opus-5-5` with adaptive thinking, disallowing all built-in file, shell,
+    on `claude-sonnet-5-5` with adaptive thinking, disallowing all built-in file, shell,
     web, and subagent tools so the reviewer never sees main-agent reasoning.
     """
     resolved_url = (
@@ -637,7 +637,7 @@ async def _run_live_sdk_reviewer(
     finding_id: str,
     options: ClaudeAgentOptions,
 ) -> dict[str, Any]:
-    """Run an isolated `ClaudeSDKClient` (`claude-opus-5-5`) session to review one finding."""
+    """Run an isolated `ClaudeSDKClient` (`claude-sonnet-5-5`) session to review one finding."""
     prompt = (
         f"Review finding {finding_id!r}. Call mcp__engine__get_evidence for "
         f"finding_id={finding_id!r}, check the claim and strength against all rules in "
@@ -671,7 +671,7 @@ async def review_finding(
     sdk_runner: Callable[..., Awaitable[dict[str, Any] | ReviewerVerdict | None]] | None = None,
     prefer_live_api: bool = True,
 ) -> dict[str, Any]:
-    """Review `finding_id` via `claude-opus-5-5` (when configured) merged with rule audit."""
+    """Review `finding_id` via `claude-sonnet-5-5` (when configured) merged with rule audit."""
     orig_finding = service.record.get_finding(finding_id)
     if orig_finding is None:
         raise KeyError(f"Unknown finding_id: {finding_id!r}")
