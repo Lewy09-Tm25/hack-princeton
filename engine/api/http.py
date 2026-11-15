@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 from urllib.parse import unquote
 
@@ -173,8 +174,12 @@ def create_http_router(service: EngineService) -> APIRouter:
         http_cmd = (
             f"claude mcp add --transport http model-safety-engine {mcp_url}{header_arg}"
         )
+        # `uv run --directory` starts the engine in the project's environment, so the
+        # command works from any folder without activating that environment first.
+        repo_root = Path(__file__).resolve().parents[2]
         stdio_cmd = (
-            f'claude mcp add model-safety-engine -- tool mcp-stdio --workspace "{workspace_str}"'
+            f'claude mcp add model-safety-engine -- uv run --directory "{repo_root}" '
+            f'tool mcp-stdio --workspace "{workspace_str}"'
         )
         plugin_cmd = "claude --plugin-dir ./plugin"
         return {

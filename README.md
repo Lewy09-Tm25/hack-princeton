@@ -100,8 +100,10 @@ The engine is independent of the web chat UI and exposes all 23 tools over MCP s
 
   ```bash
   claude mcp add --transport http model-safety-engine http://127.0.0.1:8000/mcp
-  claude mcp add model-safety-engine -- tool mcp-stdio --workspace ./workspace
+  claude mcp add model-safety-engine -- uv run --directory "/path/to/this/repo" tool mcp-stdio --workspace "/path/to/this/repo/workspace"
   ```
+
+  Replace `/path/to/this/repo` with the full path to your clone. `uv run --directory` starts the engine in the project's environment, so this works from any folder without activating it first.
 
   You can also copy the exact command (including any bearer token when `--require-token` is enabled) from the web app's Claude Code setup panel (`/api/setup/claude-code`). See [`plugin/README.md`](plugin/README.md) for details.
 

@@ -36,8 +36,10 @@ If Claude Code reports that it cannot connect to `model-safety-engine`, `tool se
 If you want Claude Code to spawn the engine directly as a subprocess over `stdio` without keeping `tool serve` running in a separate terminal, register the `stdio` server:
 
 ```bash
-claude mcp add model-safety-engine -- tool mcp-stdio --workspace ./workspace
+claude mcp add model-safety-engine -- uv run --directory "/path/to/this/repo" tool mcp-stdio --workspace "/path/to/this/repo/workspace"
 ```
+
+Replace `/path/to/this/repo` with the full path to your clone. `uv run --directory` starts the engine in the project's environment, so this works from any folder.
 
 Or use a project `.mcp.json` stdio entry:
 
@@ -45,8 +47,8 @@ Or use a project `.mcp.json` stdio entry:
 {
   "mcpServers": {
     "model-safety-engine": {
-      "command": "tool",
-      "args": ["mcp-stdio", "--workspace", "./workspace"]
+      "command": "uv",
+      "args": ["run", "--directory", "/path/to/this/repo", "tool", "mcp-stdio", "--workspace", "/path/to/this/repo/workspace"]
     }
   }
 }

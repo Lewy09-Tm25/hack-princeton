@@ -5,7 +5,7 @@ import { useAppStore } from '../store'
 export const DEFAULT_HTTP_COMMAND =
   'claude mcp add --transport http model-safety-engine http://127.0.0.1:8000/mcp'
 export const DEFAULT_STDIO_COMMAND =
-  'claude mcp add model-safety-engine -- tool mcp-stdio --workspace "./workspace"'
+  'claude mcp add model-safety-engine -- uv run --directory "/path/to/this/repo" tool mcp-stdio --workspace "/path/to/this/repo/workspace"'
 export const DEFAULT_PLUGIN_COMMAND = 'claude --plugin-dir ./plugin'
 
 export type SetupCommandKey = 'http' | 'stdio' | 'plugin'

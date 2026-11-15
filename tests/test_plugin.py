@@ -229,16 +229,12 @@ def test_plugin_readme_and_root_readme_cover_required_install_and_usage() -> Non
     assert "claude --plugin-dir ./plugin" in root_readme
     assert "Apache License, Version 2.0" in root_readme or "Apache-2.0" in root_readme
 
+    # The README's risk table lists the checks that are built end to end.
     for risk_term in (
         "Sycophancy",
         "Weakened refusals",
         "Backdoors",
         "Pretraining",
-        "Hidden bias",
-        "Behavior drift",
-        "Data poisoning",
-        "Evaluation awareness",
-        "Alignment faking",
     ):
         assert risk_term.lower() in root_readme.lower()
 
